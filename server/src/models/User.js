@@ -14,17 +14,24 @@ const userSchema = new mongoose.Schema({
         type: String,
         required: true,
         unique: true,
-        lowercase: true
+        lowercase: true,
+        trim: true
     },
 
     password: {
-        tepe: String,
+        type: String,
         required: true,
     },
 
     role: {
         type: String,
         enum: ['admin', 'doctor', 'receptionist', 'nurse', 'pharmacist', 'lab_technician', 'accountant', 'patient'],
+        default: 'patient'
+    },
+
+    status: {
+        type: String,
+        enum: ['active', 'inactive'],
         default: 'active'
     },
 
