@@ -36,7 +36,17 @@ const Login = ()=> {
             );
 
             setMessage(response.data.message);
-            console.log(response.data);
+            // console.log(response.data);
+
+            localStorage.setItem(
+                'token',
+                response.data.token
+            );
+
+            localStorage.setItem(
+                'user',
+                JSON.stringfy(response.data.user)
+            );
             
         }
         catch(error) {
