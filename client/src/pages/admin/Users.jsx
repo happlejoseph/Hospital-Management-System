@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import api from '../../services/api';
 
 
-const User = ()=> {
+const Users = ()=> {
 
     // store the users receive from backend
     const [users, setUsers] = useState([]);
@@ -23,15 +23,15 @@ const User = ()=> {
             setLoading(true);
             setError('');
 
-            const responce = await api.get('/users');
+            const response = await api.get('/users');
 
-            setUsers(responce.data.users)
+            setUsers(response.data.users)
 
         }
         catch(error) {
 
             setError(
-                error.responce?.data?.message || 'Failed to fetch users'
+                error.response?.data?.message || 'Failed to fetch users'
             );
 
         }
@@ -64,3 +64,6 @@ const User = ()=> {
 
 
 }
+
+
+export default Users;

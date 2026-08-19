@@ -34,7 +34,7 @@ export const getProfile = async(req, res)=> {
 
 
 // GET ALL USERS (ADMIN) //
-export const getAllUsers = (req, res)=> {
+export const getAllUsers = async(req, res)=> {
 
     try {
 

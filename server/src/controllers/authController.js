@@ -61,6 +61,7 @@ export const registerUser = async (req, res) => {
 export const loginUser = async(req, res)=> {
 
     try {
+console.log(req.body);
 
         const {email, password} = req.body;
 
@@ -72,6 +73,10 @@ export const loginUser = async(req, res)=> {
         }
 
         const user = await User.findOne({email});
+
+        console.log("EMAIL:", email);
+console.log("USER FOUND:", user);
+console.log("PASSWORD FROM DB:", user?.password);
 
         if(!user) {
             return res.status(404).json({
@@ -87,9 +92,11 @@ export const loginUser = async(req, res)=> {
 
         const isPasswordMatch = await bcrypt.compare(
             password, user.password
-        )
+        );
 
-        if(!isPasswordMath) {
+console.log("PASSWORD MATCH:", isPasswordMatch);
+
+        if(!isPasswordMatch) {
             return res.status(401).json({
                 message: 'Invalied password'
             });
