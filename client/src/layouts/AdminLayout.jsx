@@ -11,10 +11,10 @@ const AdminLayout = ()=> {
             <h1>Hospital Management System</h1>
 
             <nav>
-                <p>Admin Dashboard</p>
-                <p>Users</p>
-                <p>Doctors</p>
-                <p>Patients</p>
+                <Link to= '/admin/dashboard'>Dashboard</Link>
+                <Link to= '/admin/users'>Users</Link>
+                <Link to= '/admin/doctors'>Doctors</Link>
+                <Link to= '/admin/patients'>Patients</Link>
             </nav>
 
             <main>
