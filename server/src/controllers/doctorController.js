@@ -6,7 +6,7 @@ import bcrypt from 'bcrypt';
 
 
 
-// CREATE DOCTOR (ADMIN //
+// CREATE DOCTOR (ADMIN) //
 export const createDoctor = async(req, res) => {
 
     try {
@@ -153,6 +153,42 @@ export const updateDoctor = async(req, res)=> {
         res.status(200).json({
             message: 'Doctor updated successfully',
             doctor
+        });
+
+        
+    }
+    catch(error) {
+
+        res.status(500).json({
+            message: error.message
+        });
+    }
+}
+
+
+
+
+// DELETE DOCTOR (ADMIN) //
+export const deleteDoctor = async(req, res)=> {
+
+    try {
+
+        const {id} = req.params;
+        
+        const doctor = await Doctor.findById(id);
+
+        if(!doctor) {
+            return res.status(404).json({
+                message: 'Doctor not found'
+            });
+        }
+
+        await User.findByIdAndDelete(doctor.user);
+
+        await Doctor.findByIdAndDelete(id);
+
+        res.status(200).json({
+            message: 'Doctor deleted successfully'
         });
 
         
