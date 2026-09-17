@@ -4,7 +4,6 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 import Users from "./pages/admin/Users";
 import Dashboard from "./pages/admin/Dashboard";
-import Doctor from "../../server/src/models/Doctor";
 
 
 const App = () => {
