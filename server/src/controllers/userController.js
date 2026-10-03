@@ -1,9 +1,9 @@
 
 
-import User from '../models/User.js';
+import User from "../models/User.js";
 
 
-// GET PROFILE //
+// get profile //
 export const getProfile = async(req, res)=> {
 
     try {
@@ -19,10 +19,10 @@ export const getProfile = async(req, res)=> {
         res.status(200).json({
             message: 'Profile data',
             user
-        })
+        });
     }
-    catch(error) {
 
+    catch(error) {
         res.status(500).json({
             message: error.message
         });
@@ -30,24 +30,20 @@ export const getProfile = async(req, res)=> {
 }
 
 
-
-
-
-// GET ALL USERS (ADMIN) //
+// admin allget //
 export const getAllUsers = async(req, res)=> {
 
     try {
 
-        const users = await User.find().select('-password');
+        const  users = await User.find().select('-password')
 
         res.status(200).json({
             message: 'Users fetched sucessfully',
             users
         });
-
     }
-    catch(error) {
 
+    catch(error) {
         res.status(500).json({
             message: error.message
         });
@@ -56,10 +52,8 @@ export const getAllUsers = async(req, res)=> {
 
 
 
-
-
-// GET SINGLE USER (ADMIN) //
-export const getUserById = async(req, res) => {
+// admin geting //
+export const getUserById = async(req, res)=> {
 
     try {
 
@@ -76,28 +70,23 @@ export const getUserById = async(req, res) => {
         res.status(200).json({
             message: 'User fetch successfully',
             user
-        });
-
-
+        })
     }
-    catch(error) {
 
+    catch(error) {
         res.status(500).json({
             message: error.message
-        });
+        })
     }
 }
 
 
 
-
-// UPDATE PROFILE //
 export const updateProfile = async(req, res)=> {
 
     try {
 
         const {name, email} = req.body;
-
 
         if(!name || !email) {
             return res.status(400).json({
@@ -113,31 +102,30 @@ export const updateProfile = async(req, res)=> {
             {
                 new: true
             }
-        ).select('-password');
-
+        ).select('-password')
 
         if(!user) {
             return res.status(404).json({
                 message: 'User not found'
-            });
+            })
         }
 
         res.status(200).json({
             message: 'Profile updated successfully'
         })
     }
-    catch(error) {
 
+    catch(error) {
         res.status(500).json({
             message: error.message
-        })
+        });
     }
 }
 
 
 
 
-// UPDATE USER (ADMIN) //
+// admin user update //
 export const updateUser = async(req, res)=> {
 
     try {
@@ -146,7 +134,7 @@ export const updateUser = async(req, res)=> {
 
         const {name, email, role, status} = req.body;
 
-        const user = await User.findByIdAndUpdate(
+        const user = await Yser.findByIdAndUpdate(
             id,
             {
                 name, email, role, status,
@@ -155,7 +143,6 @@ export const updateUser = async(req, res)=> {
                 new: true
             }
         ).select('-password');
-
 
         if(!user) {
             return res.status(404).json({
@@ -167,20 +154,18 @@ export const updateUser = async(req, res)=> {
             message: 'User updated successfully',
             user
         });
-
-
     }
-    catch(error) {
 
+    catch(error) {
         res.status(500).json({
             message: error.message
-        });
+        })
     }
 }
 
 
 
-// DELETE USER (ADMIN) //
+
 export const deleteUser = async(req, res)=> {
 
     try {

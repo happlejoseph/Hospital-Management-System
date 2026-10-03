@@ -1,17 +1,17 @@
 
 
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
 
-
-const userSchema = new mongoose.Schema({
-
+const departmentSchema = new mongoose.Schema({
+    
     name: {
         type: String,
         required: true,
+        unique: true,
         trim: true
     },
 
-    email: {
+    slug: {
         type: String,
         required: true,
         unique: true,
@@ -19,25 +19,25 @@ const userSchema = new mongoose.Schema({
         trim: true
     },
 
-    password: {
+    description: {
         type: String,
-        required: true
+        required: true,
+        trim: true
     },
 
-    role: {
+    bannerImage: {
         type: String,
-        enum: ["admin", "doctor", "pharmacist", "patient"],
-        default: "patient"
+        default: ""
     },
 
     status: {
         type: String,
         enum: ["active", "inactive"],
         default: "active"
-    },
+    }
 
-}, {timestamps: true})
+}, { timestamps: true });
 
-const User = mongoose.model('User', userSchema);
+const Department = mongoose.model("Department", departmentSchema);
 
-export default User;
+export default Department;

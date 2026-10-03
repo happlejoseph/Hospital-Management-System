@@ -55,6 +55,11 @@ const doctorSchema = new mongoose.Schema({
         trim: true
     },
 
+    image: {
+        type: String,
+        default: ''
+    },
+
     status: {
         type: String,
         enum: ["active", "inactive"],
