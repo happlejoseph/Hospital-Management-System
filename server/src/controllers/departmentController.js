@@ -10,8 +10,8 @@ export const getDepartments = async(req, res)=> {
 
     try {
 
-        const department = await Department.find({status: 'active'}).sort({name: 1});
-        res.status(200).json({department});
+        const departments = await Department.find({status: 'active'}).sort({name: 1});
+        res.status(200).json({departments});
     }
 
     catch(error) {
@@ -52,7 +52,7 @@ export const getAllDepartmentsAdmin = async(req, res)=> {
 
     try {
 
-        const department = (await Department.find()).sort({name: 1})
+        const departments = (await Department.find()).sort({name: 1})
 
         res.status(200).json({departments});
     }
