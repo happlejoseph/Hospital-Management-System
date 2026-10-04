@@ -8,7 +8,7 @@ import fs from "fs";
 import {createMedicineOrder, getMyMedicineOrders, getAllMedicineOrders, updateMedicineOrderStatus, updateMedicinePaymentStatus} from "../controllers/medicineOrderController.js";
 
 import authMiddleware from "../middleware/authMiddleware.js";
-import authRoles from "../middleware/authRoles.js";
+import { authRoles } from "../middleware/roleMiddleware.js";
 
 const router = express.Router();
 

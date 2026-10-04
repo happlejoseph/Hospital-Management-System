@@ -31,7 +31,7 @@ const banners = [
 const Home = () => {
     
     const [currentBanner, setCurrentBanner] = useState(0);
-    const [departments, setDepartments] = useState([0]);
+    const [departments, setDepartments] = useState([]);
 
     useEffect(() => {
         const interval = setInterval(() => {
@@ -51,7 +51,8 @@ const Home = () => {
 
                 const response = await api.get('/departments');
 
-                setDepartments(response.data.departments || response.data)
+                setDepartments(Array.isArray
+                    (response.data.departments) ? response.data.setDepartments : [])
             }
             catch(error) {
                 console.error('Failed to fetch departments:', error);
