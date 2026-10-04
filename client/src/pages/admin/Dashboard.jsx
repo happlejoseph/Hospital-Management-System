@@ -5,13 +5,22 @@ import { Link } from "react-router-dom";
 import api from "../../services/api";
 
 const emptyDashboard = {
+
     summary: {
         totalPatients: 0,
         totalDoctors: 0,
         totalDepartments: 0,
         totalAppointments: 0,
+
         totalMedicines: 0,
-        lowStockMedicines: 0
+        lowStockMedicines: 0,
+        totalMedicineOrders: 0,
+        pendingMedicineOrders: 0,
+        deliveredMedicineOrders: 0,
+        cancelledMedicineOrders: 0,
+
+        totalMedicineRevenue: 0,
+        pendingMedicinePayment: 0
     },
     recentAppointments: [],
     recentPatients: [],
@@ -51,6 +60,11 @@ const Dashboard = () => {
         ["Total Appointments", dashboard.summary.totalAppointments, "/admin/appointments"],
         ["Total Medicines", dashboard.summary.totalMedicines, "/admin/pharmacy"],
         ["Low Stock Medicines", dashboard.summary.lowStockMedicines, "/admin/pharmacy"]
+        
+        ["Medicine Orders", dashboard.summary.totalMedicineOrders, "/pharmacist/orders"],
+        ["Pending Orders", dashboard.summary.pendingMedicineOrders, "/pharmacist/orders"],
+        ["Delivered Orders", dashboard.summary.deliveredMedicineOrders, "/pharmacist/orders"],
+        ["Medicine Revenue", `₹${dashboard.summary.totalMedicineRevenue}`, "/pharmacist/orders"]
     ];
 
 

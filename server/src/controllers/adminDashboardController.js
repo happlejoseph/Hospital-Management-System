@@ -6,7 +6,7 @@ import Department from "../models/Department.js";
 import Appointment from "../models/Appointment.js";
 import Medicine from "../models/Medicine.js";
 import MedicineTransaction from "../models/MedicineTransaction.js";
-import MedicineOrder from "../models/MedicineOrderModel.js";
+import MedicineOrder from "../models/MedicineOrder.js";
 
 
 
@@ -30,11 +30,12 @@ export const getAdminDashboard = async(req, res) => {
             MedicineOrder.countDocuments({status: 'delivered'}),
             MedicineOrder.countDocuments({status: 'cancelled'}),
 
-            MedicineOrder.find({paymentStatus: 'paid'}).select('totalAmount')
+            MedicineOrder.find({paymentStatus: 'paid'}).select('totalAmount'),
+            MedicineOrder.find({paymentStatus: 'pending'}).select('totalAmount')
 
         ]);
 
-        const totalMedicineRevenue = paidMedicineOrders.reduce(
+        const totalMedicineRevenue = pendingPaymentOrders.reduce(
             (total, order)=> total + order.totalAmount, 0
         )
 
@@ -76,7 +77,7 @@ export const getAdminDashboard = async(req, res) => {
                 totalMedicines,
                 lowStockMedicines: lowStockMedicines.length,
 
-                otalMedicineOrders,
+                totalMedicineOrders,
                 pendingMedicineOrders,
                 deliveredMedicineOrders,
                 cancelledMedicineOrders,
@@ -85,7 +86,7 @@ export const getAdminDashboard = async(req, res) => {
             },
             recentAppointments,
             recentPatients,
-            recentMedicineTransactions
+            recentMedicineTransactions,
             recentMedicineOrders
         });
     }

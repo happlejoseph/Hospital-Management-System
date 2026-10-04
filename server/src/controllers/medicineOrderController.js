@@ -1,6 +1,6 @@
 
 
-import MedicineOrder from "../models/medicineOrderModel.js";
+import MedicineOrder from "../models/MedicineOrder.js";
 import Medicine from "../models/Medicine.js";
 
 
