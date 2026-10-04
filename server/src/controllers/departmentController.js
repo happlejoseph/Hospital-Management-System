@@ -52,9 +52,9 @@ export const getAllDepartmentsAdmin = async(req, res)=> {
 
     try {
 
-        const department = (await Department.find()).toSorted({name: 1})
+        const department = (await Department.find()).sort({name: 1})
 
-        res.status(200).json({department});
+        res.status(200).json({departments});
     }
 
     catch(error) {
