@@ -2,6 +2,7 @@
 
 import express from "express";
 import cors from "cors";
+import path from "path";
 
 import authRoutes from "./routes/authRouters.js";
 import userRoutes from "./routes/userRoutes.js";
@@ -11,12 +12,15 @@ import departmentRoutes from "./routes/departmentRoutes.js";
 import appointmentRoutes from "./routes/appointmentRoutes.js";
 import adminDashboardRoutes from "./routes/adminDashboardRoutes.js";
 import medicalRecordRoutes from "./routes/medicalRecordRoutes.js";
+import medicineOrderRoutes from "./routes/medicineOrderRoutes.js";
 
 const app = express();
 
 
 app.use(cors());
 app.use(express.json());
+
+app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
 app.get("/", (req, res) => {
 
@@ -34,6 +38,7 @@ app.use("/api/departments", departmentRoutes);
 app.use("/api/appointments", appointmentRoutes);
 app.use("/api/admin/dashboard", adminDashboardRoutes);
 app.use("/api/medical-records", medicalRecordRoutes);
+app.use("/api/medicine-orders", medicineOrderRoutes);
 
 
 

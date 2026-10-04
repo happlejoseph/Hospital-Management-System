@@ -8,11 +8,8 @@ import { useMedicineCart } from "../../context/MedicineCartContext";
 
 const MedicineCheckout = () => {
     const { user } = useAuth();
-    const {
-        cartItems,
-        cartTotal,
-        clearCart
-    } = useMedicineCart();
+
+    const {cartItems, cartTotal, clearCart} = useMedicineCart();
 
     const navigate = useNavigate();
 
@@ -103,6 +100,11 @@ const MedicineCheckout = () => {
                 shippingAddress.trim()
             );
 
+            formData.append(
+                "paymentMethod",
+                "cod"
+            );
+
             if (prescriptionFile) {
                 formData.append(
                     "prescription",
@@ -139,9 +141,12 @@ const MedicineCheckout = () => {
         return null;
     }
 
+
+
     return (
         <div className="min-h-screen bg-slate-50">
             <section className="mx-auto max-w-6xl px-6 py-16 lg:px-10">
+
                 <div className="mb-10">
                     <p className="text-sm font-semibold uppercase tracking-widest text-[#0f6b78]">
                         Hospital Pharmacy
@@ -171,13 +176,16 @@ const MedicineCheckout = () => {
 
                 <form onSubmit={handleSubmit}>
                     <div className="grid gap-8 lg:grid-cols-[1fr_360px]">
+
                         <div className="space-y-6">
+
                             <div className="rounded-xl bg-white p-6 shadow-sm">
                                 <h2 className="text-xl font-semibold text-slate-900">
                                     Patient Information
                                 </h2>
 
                                 <div className="mt-6 grid gap-5 sm:grid-cols-2">
+
                                     <div>
                                         <label className="text-sm font-medium text-slate-700">
                                             Name
@@ -203,6 +211,7 @@ const MedicineCheckout = () => {
                                             className="mt-2 w-full rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-slate-700"
                                         />
                                     </div>
+
                                 </div>
                             </div>
 
@@ -224,6 +233,7 @@ const MedicineCheckout = () => {
                             </div>
 
                             <div className="rounded-xl bg-white p-6 shadow-sm">
+
                                 <div>
                                     <h2 className="text-xl font-semibold text-slate-900">
                                         Doctor Prescription
@@ -237,6 +247,7 @@ const MedicineCheckout = () => {
                                 </div>
 
                                 <div className="mt-6">
+
                                     <label className="block text-sm font-medium text-slate-700">
                                         Prescription PDF
                                     </label>
@@ -258,16 +269,20 @@ const MedicineCheckout = () => {
                                             {prescriptionFile.name}
                                         </div>
                                     )}
+
                                 </div>
                             </div>
+
                         </div>
 
                         <div className="h-fit rounded-xl bg-white p-6 shadow-sm">
+
                             <h2 className="text-xl font-semibold text-slate-900">
                                 Order Summary
                             </h2>
 
                             <div className="mt-6 space-y-4">
+
                                 {cartItems.map((item) => (
                                     <div
                                         key={item._id}
@@ -293,9 +308,27 @@ const MedicineCheckout = () => {
                                         </span>
                                     </div>
                                 ))}
+
+                            </div>
+
+                            <div className="mt-6 rounded-lg border border-slate-200 bg-slate-50 p-4">
+
+                                <p className="text-sm font-medium text-slate-700">
+                                    Payment Method
+                                </p>
+
+                                <p className="mt-1 font-semibold text-slate-900">
+                                    Cash on Delivery
+                                </p>
+
+                                <p className="mt-1 text-sm text-slate-500">
+                                    Pay when your medicine order is delivered.
+                                </p>
+
                             </div>
 
                             <div className="mt-6 flex items-center justify-between border-t border-slate-200 pt-5">
+
                                 <span className="text-lg font-semibold text-slate-900">
                                     Total
                                 </span>
@@ -303,6 +336,7 @@ const MedicineCheckout = () => {
                                 <span className="text-xl font-semibold text-[#0f6b78]">
                                     ₹{cartTotal.toFixed(2)}
                                 </span>
+
                             </div>
 
                             <button
@@ -312,7 +346,7 @@ const MedicineCheckout = () => {
                             >
                                 {placingOrder
                                     ? "Placing Order..."
-                                    : "Place Medicine Order"}
+                                    : "Place Order - Cash on Delivery"}
                             </button>
 
                             <button
@@ -322,12 +356,17 @@ const MedicineCheckout = () => {
                             >
                                 Back to Cart
                             </button>
+
                         </div>
+
                     </div>
                 </form>
+
             </section>
         </div>
     );
 };
+
+
 
 export default MedicineCheckout;

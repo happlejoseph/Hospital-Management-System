@@ -4,25 +4,21 @@ import { useEffect, useState } from "react";
 import api from "../../services/api";
 
 const Orders = () => {
-
     const [orders, setOrders] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
 
     const loadOrders = async () => {
-
         try {
             const response = await api.get("/medicine-orders");
 
             setOrders(response.data.orders || []);
-        } 
-        catch (error) {
+        } catch (error) {
             setError(
                 error.response?.data?.message ||
                 "Unable to load medicine orders"
             );
-        } 
-        finally {
+        } finally {
             setLoading(false);
         }
     };
@@ -32,9 +28,7 @@ const Orders = () => {
     }, []);
 
     const updateStatus = async (orderId, status) => {
-
         try {
-            
             await api.put(
                 `/medicine-orders/${orderId}/status`,
                 { status }
@@ -45,6 +39,24 @@ const Orders = () => {
             setError(
                 error.response?.data?.message ||
                 "Unable to update order status"
+            );
+        }
+    };
+
+    const updatePaymentStatus = async (orderId) => {
+        try {
+            await api.put(
+                `/medicine-orders/${orderId}/payment-status`,
+                {
+                    paymentStatus: "paid"
+                }
+            );
+
+            loadOrders();
+        } catch (error) {
+            setError(
+                error.response?.data?.message ||
+                "Unable to update payment status"
             );
         }
     };
@@ -61,6 +73,7 @@ const Orders = () => {
 
 
 
+    
     return (
         <div className="space-y-6">
             <div>
@@ -183,8 +196,7 @@ const Orders = () => {
                                                         className="border-b border-slate-100"
                                                     >
                                                         <td className="px-3 py-3 font-medium text-slate-800">
-                                                            {item.medicine
-                                                                ?.name ||
+                                                            {item.medicine?.name ||
                                                                 "Medicine"}
                                                         </td>
 
@@ -245,6 +257,53 @@ const Orders = () => {
                                         </p>
                                     )}
                                 </div>
+                            </div>
+
+                            <div className="mt-6 grid gap-4 border-t border-slate-200 pt-6 sm:grid-cols-2">
+                                <div className="rounded-lg bg-slate-50 p-4">
+                                    <p className="text-sm text-slate-500">
+                                        Payment Method
+                                    </p>
+
+                                    <p className="mt-1 font-semibold capitalize text-slate-900">
+                                        {order.paymentMethod === "cod"
+                                            ? "Cash on Delivery"
+                                            : order.paymentMethod || "Unknown"}
+                                    </p>
+                                </div>
+
+                                <div className="rounded-lg bg-slate-50 p-4">
+                                    <p className="text-sm text-slate-500">
+                                        Payment Status
+                                    </p>
+
+                                    <p
+                                        className={`mt-1 font-semibold capitalize ${
+                                            order.paymentStatus === "paid"
+                                                ? "text-green-600"
+                                                : "text-amber-600"
+                                        }`}
+                                    >
+                                        {order.paymentStatus}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="mt-4">
+                                {order.paymentMethod === "cod" &&
+                                    order.paymentStatus !== "paid" && (
+                                        <button
+                                            type="button"
+                                            onClick={() =>
+                                                updatePaymentStatus(
+                                                    order._id
+                                                )
+                                            }
+                                            className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
+                                        >
+                                            Mark Cash Paid
+                                        </button>
+                                    )}
                             </div>
 
                             <div className="mt-6 flex flex-col gap-4 border-t border-slate-200 pt-6 sm:flex-row sm:items-center sm:justify-between">
