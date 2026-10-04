@@ -82,12 +82,23 @@ const Dashboard = () => {
             {error && <div className="form-error">{error}</div>}
 
             <div className="stats-grid admin-stats-grid">
-                {cards.map(([label, value, link]) => (
-                    <Link className="stat-card admin-stat-card" to={link} key={label}>
-                        <span>{label}</span>
-                        <strong>{loading ? "—" : value}</strong>
-                    </Link>
-                ))}
+                
+                {cards.map((card) => {
+                    const label = card[0];
+                    const value = card[1];
+                    const link = card[2];
+
+                    return (
+                        <Link
+                            className="stat-card admin-stat-card"
+                            to={link}
+                            key={label}
+                        >
+                            <span>{label}</span>
+                            <strong>{loading ? "—" : value}</strong>
+                        </Link>
+                    );
+                })}
             </div>
 
             <section className="dashboard-section">
