@@ -2,7 +2,7 @@
 
 import mongoose from "mongoose";
 
-const appointmentSchema = new mongoose.Schema({
+const medicalRecordSchema = new mongoose.Schema({
 
     patient: {
         type: mongoose.Schema.Types.ObjectId,
@@ -16,37 +16,44 @@ const appointmentSchema = new mongoose.Schema({
         required: true
     },
 
-    department: {
+    appointment: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Appointment"
+    },
+
+    diagnosis: {
         type: String,
         required: true,
         trim: true
     },
 
-    date: {
-        type: String,
-        required: true
-    },
-
-    time: {
-        type: String,
-        required: true
-    },
-
-    reason: {
+    symptoms: {
         type: String,
         trim: true,
         default: ""
     },
 
-    status: {
+    notes: {
         type: String,
-        enum: ["pending", "confirmed", "completed", "cancelled"],
-        default: "pending"
+        trim: true,
+        default: ""
+    },
+
+    treatment: {
+        type: String,
+        trim: true,
+        default: ""
+    },
+
+    prescription: {
+        type: String,
+        trim: true,
+        default: ""
     }
 
 }, { timestamps: true });
 
-const Appointment = mongoose.model("Appointment", appointmentSchema);
+const MedicalRecord = mongoose.model("MedicalRecord", medicalRecordSchema);
 
 
-export default Appointment;
+export default MedicalRecord;

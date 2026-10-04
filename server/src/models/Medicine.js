@@ -3,7 +3,7 @@
 import mongoose from "mongoose";
 
 const medicineSchema = new mongoose.Schema({
-
+    
     name: {
         type: String,
         required: true,
@@ -51,7 +51,7 @@ const medicineSchema = new mongoose.Schema({
         default: 10,
         min: 0
     }
-    
+
 }, { timestamps: true });
 
 const Medicine = mongoose.model("Medicine", medicineSchema);

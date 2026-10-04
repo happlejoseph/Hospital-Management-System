@@ -1,7 +1,6 @@
 
 
-import mongoose from 'mongoose';
-
+import mongoose from "mongoose";
 
 const userSchema = new mongoose.Schema({
 
@@ -36,8 +35,12 @@ const userSchema = new mongoose.Schema({
         default: "active"
     },
 
-}, {timestamps: true})
+    resetPasswordOTP: String,
+    resetPasswordOTPExpiry: Date
 
-const User = mongoose.model('User', userSchema);
+}, { timestamps: true });
+
+const User = mongoose.model("User", userSchema);
+
 
 export default User;

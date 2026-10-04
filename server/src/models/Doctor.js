@@ -1,12 +1,14 @@
 
 
+
+
 import mongoose from 'mongoose';
 
 
 const doctorSchema = new mongoose.Schema({
 
     user: {
-        type: mongoose.Schema.Type.ObjectId,
+        type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
         required: true,
         unique: true
@@ -57,7 +59,7 @@ const doctorSchema = new mongoose.Schema({
 
     image: {
         type: String,
-        default: ''
+        default: ""
     },
 
     status: {
@@ -65,6 +67,7 @@ const doctorSchema = new mongoose.Schema({
         enum: ["active", "inactive"],
         default: "active"
     }
+    
 }, {timestamps: true});
 
 const Doctor = mongoose.model('Doctor', doctorSchema);

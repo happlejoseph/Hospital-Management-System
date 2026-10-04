@@ -1,6 +1,7 @@
 
 
-const DashboardLayout = ()=> {
+import AdminLayout from "./AdminLayout";
 
-    const []
-}
+const DashboardLayout = ({ children }) => <AdminLayout>{children}</AdminLayout>;
+
+export default DashboardLayout;

@@ -22,3 +22,6 @@ router.post("/", authMiddleware, authRoles("admin"), createDepartment);
 router.put("/:id", authMiddleware, authRoles("admin"), updateDepartment);
 
 router.delete("/:id", authMiddleware, authRoles("admin"), deleteDepartment);
+
+
+export default router;
