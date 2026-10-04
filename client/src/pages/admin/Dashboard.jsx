@@ -59,12 +59,12 @@ const Dashboard = () => {
         ["Total Departments", dashboard.summary.totalDepartments, "/admin/departments"],
         ["Total Appointments", dashboard.summary.totalAppointments, "/admin/appointments"],
         ["Total Medicines", dashboard.summary.totalMedicines, "/admin/pharmacy"],
-        ["Low Stock Medicines", dashboard.summary.lowStockMedicines, "/admin/pharmacy"]
-        
+        ["Low Stock Medicines", dashboard.summary.lowStockMedicines, "/admin/pharmacy"],
+
         ["Medicine Orders", dashboard.summary.totalMedicineOrders, "/pharmacist/orders"],
         ["Pending Orders", dashboard.summary.pendingMedicineOrders, "/pharmacist/orders"],
         ["Delivered Orders", dashboard.summary.deliveredMedicineOrders, "/pharmacist/orders"],
-        ["Medicine Revenue", `₹${dashboard.summary.totalMedicineRevenue}`, "/pharmacist/orders"]
+        ["Medicine Revenue", `₹${dashboard.summary.totalMedicineRevenue}`, "/pharmacist/orders"],
     ];
 
 

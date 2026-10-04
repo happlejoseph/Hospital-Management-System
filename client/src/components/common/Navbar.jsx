@@ -27,8 +27,10 @@ const Navbar = () => {
     return (
         <header className="navbar hospital-navbar">
             <Link to="/" className="brand hospital-brand">
-                <span className="brand-mark">H</span>
-                <span>CarePoint <small>Hospital</small></span>
+            <img src="https://res.cloudinary.com/eneepkso/image/upload/v1791138326/264488-middle.png"
+            alt="Hospital Logo"
+            className="hospital-logo" />
+                <span>Arogya <small>Hospital</small></span>
             </Link>
 
             <nav className="nav-links hospital-nav-links">

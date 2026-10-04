@@ -25,11 +25,14 @@ const Login = () => {
             
             const loggedInUser = await login(formData.email, formData.password);
 
-            if(loggedInUser.role === "pharmacist") {
-                navigate("/pharmacist");
+            if(loggedInUser.role === "admin") {
+                navigate("/admin");
+            }
+            else if(loggedInUser.role === 'pharmacist') {
+                navigate('/pharmacist');
             }
             else {
-                navigate("/");
+                navigate('/');
             }
         }
         catch(error) {
@@ -46,7 +49,7 @@ const Login = () => {
     return (
         <div className="auth-page">
             <div className="auth-card">
-                <span className="eyebrow">CAREPOINT HOSPITAL</span>
+                <span className="eyebrow">AROGYA HOSPITAL</span>
                 <h1>Welcome back</h1>
                 <p className="auth-subtitle">Sign in to access your hospital account.</p>
 
