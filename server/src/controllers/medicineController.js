@@ -3,6 +3,9 @@
 import Medicine from "../models/Medicine.js";
 import MedicineTransaction from "../models/MedicineTransaction.js";
 
+
+
+
 export const getMedicines = async(req, res) => {
 
     try {
@@ -21,8 +24,15 @@ export const getMedicines = async(req, res) => {
     }
 };
 
+
+
+
+
+
 export const createMedicine = async(req, res) => {
+
     try {
+
         const { name, batchNumber, expiryDate, quantity, supplier, purchasePrice, sellingPrice, lowStockThreshold } = req.body;
 
         if(!name || !batchNumber || !expiryDate || quantity === undefined || !supplier || purchasePrice === undefined || sellingPrice === undefined) {
@@ -65,9 +75,18 @@ export const createMedicine = async(req, res) => {
     }
 };
 
+
+
+
+
+
+
 export const purchaseMedicine = async(req, res) => {
+
     try {
+
         const { id } = req.params;
+
         const { quantity, supplier, purchasePrice } = req.body;
 
         if(!quantity || quantity <= 0) {
@@ -111,6 +130,8 @@ export const purchaseMedicine = async(req, res) => {
             medicine
         });
     }
+
+
     catch(error) {
         res.status(500).json({
             message: error.message
@@ -118,8 +139,15 @@ export const purchaseMedicine = async(req, res) => {
     }
 };
 
+
+
+
+
+
 export const dispenseMedicine = async(req, res) => {
+
     try {
+
         const { id } = req.params;
         const { quantity, patientName, notes } = req.body;
 
@@ -177,6 +205,7 @@ export const dispenseMedicine = async(req, res) => {
             medicine
         });
     }
+
     catch(error) {
         res.status(500).json({
             message: error.message
@@ -184,8 +213,14 @@ export const dispenseMedicine = async(req, res) => {
     }
 };
 
+
+
+
+
 export const getInventoryReport = async(req, res) => {
+
     try {
+
         const medicines = await Medicine.find().sort({ quantity: 1, name: 1 });
         const transactions = await MedicineTransaction.find()
             .populate("medicine", "name batchNumber")
@@ -194,10 +229,12 @@ export const getInventoryReport = async(req, res) => {
             .limit(100);
 
         const lowStock = medicines.filter((medicine) => medicine.quantity <= medicine.lowStockThreshold);
+        
         const expired = medicines.filter((medicine) => new Date(medicine.expiryDate) < new Date());
 
         res.status(200).json({
             message: "Inventory report fetched successfully",
+
             summary: {
                 totalMedicines: medicines.length,
                 totalUnits: medicines.reduce((total, medicine) => total + medicine.quantity, 0),
@@ -210,6 +247,8 @@ export const getInventoryReport = async(req, res) => {
             transactions
         });
     }
+
+
     catch(error) {
         res.status(500).json({
             message: error.message
