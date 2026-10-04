@@ -56,6 +56,7 @@ const Dashboard = () => {
                 <Link to="/pharmacist/purchase" className="quick-card"><strong>Purchase Medicines</strong><span>Add stock to existing medicines.</span></Link>
                 <Link to="/pharmacist/dispense" className="quick-card"><strong>Dispense Medicines</strong><span>Record medicine given to a patient.</span></Link>
                 <Link to="/pharmacist/reports" className="quick-card"><strong>Inventory Reports</strong><span>Check low stock, expiry and movements.</span></Link>
+                <Link to="/pharmacist/orders" className="quick-card"><strong>Medicine Orders</strong><span>Review and manage patient medicine orders.</span></Link>
             </div>
         </div>
     );

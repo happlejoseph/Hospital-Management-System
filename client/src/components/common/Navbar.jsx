@@ -22,6 +22,8 @@ const Navbar = () => {
         navigate("/");
     };
 
+
+
     return (
         <header className="navbar hospital-navbar">
             <Link to="/" className="brand hospital-brand">
@@ -41,7 +43,8 @@ const Navbar = () => {
                     )}
                 </div>
                 <Link to="/doctors">Doctors</Link>
-                <Link to="/departments">Medical Care</Link>
+                <Link to="/medicines">Medicines</Link>
+                <Link to="/about">About</Link>
                 <Link to="/appointments">Appointments</Link>
             </nav>
 
@@ -49,9 +52,22 @@ const Navbar = () => {
                 {user ? (
                     <>
                         <span className="user-name">{user.name}</span>
-                        {user.role === "admin" && <Link className="outline-button" to="/admin">Admin</Link>}
-                        {user.role === "pharmacist" && <Link className="outline-button" to="/pharmacist">Pharmacy</Link>}
-                        <button className="button button-dark" onClick={handleLogout}>Logout</button>
+
+                        {user.role === 'patient' && (
+                            <Link className="utline-button" to={'/medicine-orders'}>
+                                My Medicine Orders
+                            </Link>
+                        )}
+
+                        {user.role === 'pharmacist' && (
+                            <Link className="utline-button" to={'/pharmacist'}>
+                                Pharmacy
+                            </Link>
+                        )}
+
+                        <button className="utton button-dark" onClick={handleLogout}>
+                            Logout
+                        </button>
                     </>
                 ) : (
                     <>

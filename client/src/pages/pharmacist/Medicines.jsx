@@ -19,7 +19,8 @@ const Medicines = () => {
         supplier: "",
         purchasePrice: "",
         sellingPrice: "",
-        lowStockThreshold: "10"
+        lowStockThreshold: "10",
+        requiresPrescription: false
     });
 
     const loadMedicines = async() => {
@@ -41,7 +42,11 @@ const Medicines = () => {
 
     const handleChange = (event) => {
         const { name, value } = event.target;
-        setFormData((previous) => ({ ...previous, [name]: value }));
+
+        setFormData((previous) => ({
+            ...previous,
+            [name]: name === 'requiresPrescription' ? value === "true" : value
+        }));
     };
 
     const handleSubmit = async(event) => {
@@ -53,6 +58,7 @@ const Medicines = () => {
         try {
             const response = await api.post("/medicines", formData);
             setMessage(response.data.message);
+
             setFormData({
                 name: "",
                 batchNumber: "",
@@ -61,7 +67,8 @@ const Medicines = () => {
                 supplier: "",
                 purchasePrice: "",
                 sellingPrice: "",
-                lowStockThreshold: "10"
+                lowStockThreshold: "10",
+                requiresPrescription: false
             });
             await loadMedicines();
         }
@@ -97,6 +104,7 @@ const Medicines = () => {
                     <label>Purchase Price<input type="number" name="purchasePrice" min="0" step="0.01" value={formData.purchasePrice} onChange={handleChange} required /></label>
                     <label>Selling Price<input type="number" name="sellingPrice" min="0" step="0.01" value={formData.sellingPrice} onChange={handleChange} required /></label>
                     <label>Low Stock Threshold<input type="number" name="lowStockThreshold" min="0" value={formData.lowStockThreshold} onChange={handleChange} required /></label>
+                    <label>Prescription Required<select name="requiresPrescription"value={formData.requiresPrescription}onChange={handleChange}><option value={false}>No</option><option value={true}>Yes</option></select></label>
                     <div className="form-actions"><button className="button button-dark" type="submit" disabled={saving}>{saving ? "Adding..." : "Add Medicine"}</button></div>
                 </form>
             </div>

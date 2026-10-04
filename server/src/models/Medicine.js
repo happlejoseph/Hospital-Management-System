@@ -46,6 +46,11 @@ const medicineSchema = new mongoose.Schema({
         min: 0
     },
 
+    requiresPrescription: {
+        type: Boolean,
+        default: false
+    },
+
     lowStockThreshold: {
         type: Number,
         default: 10,
