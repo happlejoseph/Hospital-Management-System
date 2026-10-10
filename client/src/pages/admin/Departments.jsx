@@ -71,7 +71,7 @@ const Departments = () => {
                     <label>Department name<input value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} required /></label>
                     <label>Status<select value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value })}><option value="active">Active</option><option value="inactive">Inactive</option></select></label>
                     <label className="form-actions">Description<textarea value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} required /></label>
-                    <label className="form-actions">Cloudinary banner URL<input value={form.bannerImage} onChange={(event) => setForm({ ...form, bannerImage: event.target.value })} placeholder="Paste Cloudinary image URL here later" /></label>
+                    <label className="form-actions">Cloudinary banner URL<input value={form.bannerImage} onChange={(event) => setForm({ ...form, bannerImage: event.target.value })} placeholder="Paste department image URL here" /></label>
                     <div className="form-actions"><button className="button button-dark" type="submit">{editingId ? "Update Department" : "Add Department"}</button>{editingId && <button className="outline-button admin-cancel" type="button" onClick={() => { setEditingId(null); setForm(emptyForm); }}>Cancel</button>}</div>
                 </div>
             </form>

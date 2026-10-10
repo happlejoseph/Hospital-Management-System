@@ -31,8 +31,11 @@ const Login = () => {
             else if(loggedInUser.role === 'pharmacist') {
                 navigate('/pharmacist');
             }
+            else if(loggedInUser.role === 'doctor') {
+                navigate('/doctor');
+            }
             else {
-                navigate('/');
+                navigate("/");
             }
         }
         catch(error) {
@@ -56,7 +59,7 @@ const Login = () => {
                 {error && <div className="form-error">{error}</div>}
 
                 <form onSubmit={handleSubmit} className="form-stack">
-                    <label>Email<input type="email" name="email" value={formData.email} onChange={handleChange} required placeholder="you@example.com" /></label>
+                    <label>Email<input type="email" name="email" value={formData.email} onChange={handleChange} required placeholder="Enter email" /></label>
                     <label>Password<input type="password" name="password" value={formData.password} onChange={handleChange} required placeholder="Enter your password" /></label>
                     <button className="button button-dark full-button" type="submit" disabled={loading}>{loading ? "Signing in..." : "Login"}</button>
                 </form>

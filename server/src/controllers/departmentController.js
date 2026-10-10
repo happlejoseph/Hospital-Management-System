@@ -1,6 +1,7 @@
 
 
 import Department from "../models/Department.js";
+import Doctor from "../models/Doctor.js";
 
 
 const makeSlug = (name) => name.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
@@ -31,7 +32,7 @@ export const getDepartmentBySlug = async(req, res)=> {
 
         if(!department) {
             return res.status(404).json({
-                message: 'epartment not found'
+                message: 'Department not found'
             });
         }
 
@@ -52,7 +53,7 @@ export const getAllDepartmentsAdmin = async(req, res)=> {
 
     try {
 
-        const departments = (await Department.find()).sort({name: 1})
+        const departments = await Department.find().sort({name: 1});
 
         res.status(200).json({departments});
     }
@@ -96,7 +97,7 @@ export const createDepartment = async(req, res)=> {
             status
         });
 
-        res,status(201).json({
+        res.status(201).json({
             message: 'Department created successfully', department
         })
     }
@@ -115,7 +116,7 @@ export const updateDepartment = async(req, res)=> {
 
     try {
 
-        const {name, description, bannerImage = '', status = 'active',} = req.body;
+        const {name, description, bannerImage, status} = req.body;
 
         const department = await Department.findById(req.params.id)
 
@@ -125,12 +126,30 @@ export const updateDepartment = async(req, res)=> {
             });
         }
 
-        department.name = name?.trim() ?? department.name;
+        const previousName = department.name;
+
+        department.name = name?.trim() || department.name;
         department.slug = makeSlug(department.name)
-        department.description = description?.trim() ?? department.description;
-        department.status = status
+        department.description = description?.trim() || department.description;
+        department.bannerImage = bannerImage ?? department.bannerImage;
+        department.status = status ?? department.status;
+
+        const duplicate = await Department.findOne({
+            _id: {$ne: department._id},
+            $or: [{name: department.name}, {slug: department.slug}]
+        });
+
+        if(duplicate) {
+            return res.status(400).json({
+                message: 'Department already exists'
+            });
+        }
 
         await department.save();
+
+        if(previousName !== department.name) {
+            await Doctor.updateMany({department: previousName}, {department: department.name});
+        }
 
         res.status(200).json({
             message: 'Department updated successfully', department

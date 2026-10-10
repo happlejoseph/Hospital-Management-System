@@ -51,8 +51,11 @@ const Home = () => {
 
                 const response = await api.get('/departments');
 
-                setDepartments(Array.isArray
-                    (response.data.departments) ? response.data.setDepartments : [])
+                setDepartments(
+                    Array.isArray(response.data.departments)
+                        ? response.data.departments
+                        : []
+                )
             }
             catch(error) {
                 console.error('Failed to fetch departments:', error);

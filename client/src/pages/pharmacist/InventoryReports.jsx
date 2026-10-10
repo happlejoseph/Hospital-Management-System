@@ -2,16 +2,21 @@
 
 import { useEffect, useState } from "react";
 import api from "../../services/api";
+import { formatDate } from "../../utils/formatDate";
 
 const InventoryReports = () => {
     const [report, setReport] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState("");
 
     useEffect(() => {
         const loadReport = async() => {
             try {
                 const response = await api.get("/medicines/reports/inventory");
                 setReport(response.data);
+            }
+            catch(error) {
+                setError(error.response?.data?.message || "Unable to load report");
             }
             finally {
                 setLoading(false);
@@ -23,6 +28,10 @@ const InventoryReports = () => {
 
     if(loading) {
         return <div className="page-loading">Loading report...</div>;
+    }
+
+    if(!report) {
+        return <div className="form-error">{error || "Unable to load report"}</div>;
     }
 
     return (
@@ -42,13 +51,13 @@ const InventoryReports = () => {
                 </div>
                 <div className="table-card">
                     <div className="table-title">Expired Medicines</div>
-                    <table><thead><tr><th>Medicine</th><th>Batch</th><th>Expiry</th></tr></thead><tbody>{report.expired.length === 0 ? <tr><td colSpan="3">No expired medicines.</td></tr> : report.expired.map((medicine) => <tr key={medicine._id}><td>{medicine.name}</td><td>{medicine.batchNumber}</td><td>{new Date(medicine.expiryDate).toLocaleDateString()}</td></tr>)}</tbody></table>
+                    <table><thead><tr><th>Medicine</th><th>Batch</th><th>Expiry</th></tr></thead><tbody>{report.expired.length === 0 ? <tr><td colSpan="3">No expired medicines.</td></tr> : report.expired.map((medicine) => <tr key={medicine._id}><td>{medicine.name}</td><td>{medicine.batchNumber}</td><td>{formatDate(medicine.expiryDate)}</td></tr>)}</tbody></table>
                 </div>
             </div>
 
             <div className="table-card report-history">
                 <div className="table-title">Recent Stock Movements</div>
-                <table><thead><tr><th>Medicine</th><th>Type</th><th>Quantity</th><th>Patient/Supplier</th><th>Date</th></tr></thead><tbody>{report.transactions.length === 0 ? <tr><td colSpan="5">No transactions yet.</td></tr> : report.transactions.map((transaction) => <tr key={transaction._id}><td>{transaction.medicine?.name}</td><td>{transaction.type}</td><td>{transaction.quantity}</td><td>{transaction.type === "dispense" ? transaction.patientName : transaction.supplier}</td><td>{new Date(transaction.createdAt).toLocaleString()}</td></tr>)}</tbody></table>
+                <table><thead><tr><th>Medicine</th><th>Type</th><th>Quantity</th><th>Patient/Supplier</th><th>Date</th></tr></thead><tbody>{report.transactions.length === 0 ? <tr><td colSpan="5">No transactions yet.</td></tr> : report.transactions.map((transaction) => <tr key={transaction._id}><td>{transaction.medicine?.name}</td><td>{transaction.type}</td><td>{transaction.quantity}</td><td>{transaction.type === "purchase" ? transaction.supplier : transaction.patientName || "—"}</td><td>{new Date(transaction.createdAt).toLocaleString()}</td></tr>)}</tbody></table>
             </div>
         </div>
     );

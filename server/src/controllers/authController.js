@@ -1,7 +1,7 @@
 
 
 import User from '../models/User.js';
-import bcrypt, { hash } from 'bcryptjs';
+import bcrypt from 'bcryptjs';
 import jwt from "jsonwebtoken";
 
 
@@ -37,7 +37,7 @@ export const registerUser = async(req, res)=> {
         const hashPassword = await bcrypt.hash(password, 10);
 
         const user = await User.create({
-            name, email: normalizedEmail, password: hashPassword
+            name: name.trim(), email: normalizedEmail, password: hashPassword
         });
 
         res.status(201).json({
@@ -78,8 +78,8 @@ export const loginUser = async(req, res)=> {
         });
 
         if(!user) {
-            return res.status(404).json({
-                message: 'User not found'
+            return res.status(401).json({
+                message: 'Invalid email or password'
             });
         }
 
@@ -93,7 +93,7 @@ export const loginUser = async(req, res)=> {
 
         if(!isPasswordMatch) {
             return res.status(401).json({
-                message: 'Invalid password'
+                message: 'Invalid email or password'
             });
         }
 

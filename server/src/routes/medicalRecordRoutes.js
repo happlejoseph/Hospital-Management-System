@@ -3,19 +3,20 @@
 import express from "express";
 import authMiddleware from "../middleware/authMiddleware.js";
 import { authRoles } from "../middleware/roleMiddleware.js";
-import {createMedicalRecord, getMedicalRecords, updateMedicalRecord, deleteMedicalRecord} from "../controllers/medicalRecordController.js";
-
+import { createDoctorMedicalRecord, deleteDoctorMedicalRecord, getDoctorMedicalRecords, updateDoctorMedicalRecord } from "../controllers/medicalRecordController.js";
 
 const router = express.Router();
 
 
-router.get("/", authMiddleware, authRoles("admin"), getMedicalRecords);
 
-router.post("/", authMiddleware, authRoles("admin"), createMedicalRecord);
+router.get("/doctor", authMiddleware, authRoles("doctor"), getDoctorMedicalRecords);
 
-router.put("/:id", authMiddleware, authRoles("admin"), updateMedicalRecord);
+router.post("/doctor", authMiddleware, authRoles("doctor"), createDoctorMedicalRecord);
 
-router.delete("/:id", authMiddleware, authRoles("admin"), deleteMedicalRecord);
+router.put("/doctor/:id", authMiddleware, authRoles("doctor"), updateDoctorMedicalRecord);
+
+router.delete("/doctor/:id", authMiddleware, authRoles("doctor"), deleteDoctorMedicalRecord);
+
 
 
 export default router;

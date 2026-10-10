@@ -12,7 +12,7 @@ const medicineTransactionSchema = new mongoose.Schema({
 
     type: {
         type: String,
-        enum: ["purchase", "dispense"],
+        enum: ["purchase", "dispense", "return"],
         required: true
     },
 

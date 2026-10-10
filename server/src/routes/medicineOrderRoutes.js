@@ -5,7 +5,7 @@ import multer from "multer";
 import path from "path";
 import fs from "fs";
 
-import {createMedicineOrder, getMyMedicineOrders, getAllMedicineOrders, updateMedicineOrderStatus, updateMedicinePaymentStatus} from "../controllers/medicineOrderController.js";
+import {createMedicineOrder, getMyMedicineOrders, getAllMedicineOrders, getMedicineOrderPrescription, cancelMyMedicineOrder, updateMedicineOrderStatus, updateMedicinePaymentStatus} from "../controllers/medicineOrderController.js";
 
 import authMiddleware from "../middleware/authMiddleware.js";
 import { authRoles } from "../middleware/roleMiddleware.js";
@@ -54,11 +54,58 @@ const upload = multer({
     }
 });
 
-router.post("/", authMiddleware, authRoles("patient"), upload.single("prescription"), createMedicineOrder);
+const removeFile = (file) => {
+    if (file?.path) {
+        fs.unlink(file.path, () => {});
+    }
+};
+
+const isPdfFile = (file) => {
+    const header = Buffer.alloc(5);
+    const fileDescriptor = fs.openSync(file.path, "r");
+
+    try {
+        fs.readSync(fileDescriptor, header, 0, 5, 0);
+    }
+    finally {
+        fs.closeSync(fileDescriptor);
+    }
+
+    return header.toString("utf8") === "%PDF-";
+};
+
+const handleUpload = (req, res, next) => {
+    upload.single("prescription")(req, res, (error) => {
+        if (error) {
+            return res.status(400).json({
+                message: error.code === "LIMIT_FILE_SIZE" ? "Prescription PDF must be smaller than 5 MB" : error.message
+            });
+        }
+
+        if (req.file && !isPdfFile(req.file)) {
+            removeFile(req.file);
+
+            return res.status(400).json({
+                message: "Only valid PDF files are allowed"
+            });
+        }
+
+        next();
+    });
+};
+
+
+
+
+router.post("/", authMiddleware, authRoles("patient"), handleUpload, createMedicineOrder);
 
 router.get("/my", authMiddleware, authRoles("patient"), getMyMedicineOrders);
 
 router.get("/", authMiddleware, authRoles("admin", "pharmacist"), getAllMedicineOrders);
+
+router.get("/:id/prescription", authMiddleware, authRoles("patient", "admin", "pharmacist"), getMedicineOrderPrescription);
+
+router.put("/:id/cancel", authMiddleware, authRoles("patient"), cancelMyMedicineOrder);
 
 router.put("/:id/status", authMiddleware, authRoles("admin", "pharmacist"), updateMedicineOrderStatus);
 

@@ -1,7 +1,9 @@
 
 
+import mongoose from "mongoose";
 import Medicine from "../models/Medicine.js";
 import MedicineTransaction from "../models/MedicineTransaction.js";
+import cloudinary from "../config/cloudinary.js";
 
 
 
@@ -27,38 +29,149 @@ export const getMedicines = async(req, res) => {
 
 
 
+export const getPublicMedicines = async(req, res) => {
+
+    try {
+
+        const medicines = await Medicine.find({ expiryDate: { $gt: new Date() } })
+            .select("name image description category sellingPrice quantity requiresPrescription expiryDate")
+            .sort({ name: 1 });
+
+        res.status(200).json({
+            medicines
+        });
+    }
+    catch(error) {
+        res.status(500).json({
+            message: error.message
+        });
+    }
+};
+
+
+
+
+export const getPublicMedicineById = async(req, res) => {
+
+    try {
+
+        const { id } = req.params;
+
+        if(!mongoose.isValidObjectId(id)) {
+            return res.status(404).json({
+                message: "Medicine not found"
+            });
+        }
+
+        const medicine = await Medicine.findOne({ _id: id, expiryDate: { $gt: new Date() } })
+            .select("name image description category sellingPrice quantity requiresPrescription expiryDate");
+
+        if(!medicine) {
+            return res.status(404).json({
+                message: "Medicine not found"
+            });
+        }
+
+        res.status(200).json({
+            medicine
+        });
+    }
+    catch(error) {
+        res.status(500).json({
+            message: error.message
+        });
+    }
+};
+
+
 
 
 export const createMedicine = async(req, res) => {
 
     try {
 
-        const { name, batchNumber, expiryDate, quantity, supplier, purchasePrice, sellingPrice, lowStockThreshold } = req.body;
+        const { name, description = "", category = "", batchNumber, expiryDate, quantity, supplier, purchasePrice, sellingPrice, requiresPrescription = false, lowStockThreshold } = req.body;
 
-        if(!name || !batchNumber || !expiryDate || quantity === undefined || !supplier || purchasePrice === undefined || sellingPrice === undefined) {
+        if(!name?.trim() || !batchNumber?.trim() || !expiryDate || quantity === undefined || !supplier?.trim() || purchasePrice === undefined || sellingPrice === undefined) {
             return res.status(400).json({
                 message: "All medicine fields are required"
             });
         }
 
+        const quantityNumber = Number(quantity);
+        const purchasePriceNumber = Number(purchasePrice);
+        const sellingPriceNumber = Number(sellingPrice);
+        const thresholdNumber = lowStockThreshold === undefined || lowStockThreshold === "" ? 10 : Number(lowStockThreshold);
+        const parsedExpiryDate = new Date(expiryDate);
+
+        if(!Number.isInteger(quantityNumber) || quantityNumber < 0) {
+            return res.status(400).json({
+                message: "Quantity must be a whole number zero or greater"
+            });
+        }
+
+        if(!Number.isFinite(purchasePriceNumber) || purchasePriceNumber < 0 || !Number.isFinite(sellingPriceNumber) || sellingPriceNumber < 0) {
+            return res.status(400).json({
+                message: "Medicine prices must be valid numbers"
+            });
+        }
+
+        if(!Number.isInteger(thresholdNumber) || thresholdNumber < 0) {
+            return res.status(400).json({
+                message: "Low stock threshold must be a whole number zero or greater"
+            });
+        }
+
+        if(Number.isNaN(parsedExpiryDate.getTime()) || parsedExpiryDate <= new Date()) {
+            return res.status(400).json({
+                message: "Expiry date must be a valid future date"
+            });
+        }
+
+        let image = "";
+
+        if (req.file) {
+            const result = await new Promise((resolve, reject) => {
+                cloudinary.uploader.upload_stream(
+                    {
+                        folder: "hospital/medicines",
+                        resource_type: "image"
+                    },
+                    (error, result) => {
+                        if (error) {
+                            reject(error);
+                        } else {
+                            resolve(result);
+                        }
+                    }
+                ).end(req.file.buffer);
+            });
+
+            image = result.secure_url;
+        }
+
         const medicine = await Medicine.create({
-            name,
-            batchNumber,
-            expiryDate,
-            quantity,
-            supplier,
-            purchasePrice,
-            sellingPrice,
-            lowStockThreshold
+            name: name.trim(),
+            image,
+            description: String(description).trim(),
+            category: String(category).trim(),
+            batchNumber: batchNumber.trim(),
+            expiryDate: parsedExpiryDate,
+            quantity: quantityNumber,
+            supplier: supplier.trim(),
+            purchasePrice: purchasePriceNumber,
+            sellingPrice: sellingPriceNumber,
+            requiresPrescription: requiresPrescription === true || requiresPrescription === "true",
+            lowStockThreshold: thresholdNumber
         });
 
         await MedicineTransaction.create({
             medicine: medicine._id,
             type: "purchase",
-            quantity,
-            supplier,
-            purchasePrice,
-            sellingPrice,
+            quantity: quantityNumber,
+            supplier: supplier.trim(),
+            purchasePrice: purchasePriceNumber,
+            sellingPrice: sellingPriceNumber,
             createdBy: req.user.id,
             notes: "Initial stock"
         });
@@ -89,9 +202,15 @@ export const purchaseMedicine = async(req, res) => {
 
         const { quantity, supplier, purchasePrice } = req.body;
 
-        if(!quantity || quantity <= 0) {
+        if(!Number.isInteger(Number(quantity)) || Number(quantity) <= 0) {
             return res.status(400).json({
-                message: "Quantity must be greater than zero"
+                message: "Quantity must be a whole number greater than zero"
+            });
+        }
+
+        if(purchasePrice !== undefined && purchasePrice !== "" && (!Number.isFinite(Number(purchasePrice)) || Number(purchasePrice) < 0)) {
+            return res.status(400).json({
+                message: "Purchase price must be a valid number"
             });
         }
 
@@ -109,7 +228,7 @@ export const purchaseMedicine = async(req, res) => {
             medicine.supplier = supplier;
         }
 
-        if(purchasePrice !== undefined) {
+        if(purchasePrice !== undefined && purchasePrice !== "") {
             medicine.purchasePrice = Number(purchasePrice);
         }
 
@@ -151,9 +270,9 @@ export const dispenseMedicine = async(req, res) => {
         const { id } = req.params;
         const { quantity, patientName, notes } = req.body;
 
-        if(!quantity || quantity <= 0) {
+        if(!Number.isInteger(Number(quantity)) || Number(quantity) <= 0) {
             return res.status(400).json({
-                message: "Quantity must be greater than zero"
+                message: "Quantity must be a whole number greater than zero"
             });
         }
 
@@ -166,7 +285,8 @@ export const dispenseMedicine = async(req, res) => {
         const medicine = await Medicine.findOneAndUpdate(
             {
                 _id: id,
-                quantity: { $gte: Number(quantity) }
+                quantity: { $gte: Number(quantity) },
+                expiryDate: { $gt: new Date() }
             },
             {
                 $inc: { quantity: -Number(quantity) }
@@ -182,6 +302,12 @@ export const dispenseMedicine = async(req, res) => {
             if(!existingMedicine) {
                 return res.status(404).json({
                     message: "Medicine not found"
+                });
+            }
+
+            if(new Date(existingMedicine.expiryDate) <= new Date()) {
+                return res.status(400).json({
+                    message: "Medicine has expired"
                 });
             }
 
@@ -248,6 +374,121 @@ export const getInventoryReport = async(req, res) => {
         });
     }
 
+    catch(error) {
+        res.status(500).json({
+            message: error.message
+        });
+    }
+};
+
+
+export const deleteMedicine = async(req, res) => {
+
+    try {
+
+        const medicine = await Medicine.findByIdAndDelete(req.params.id);
+
+        if(!medicine) {
+            return res.status(404).json({
+                message: "Medicine not found"
+            });
+        }
+
+        res.status(200).json({
+            message: "Medicine deleted successfully"
+        });
+    }
+
+    catch(error) {
+        res.status(500).json({
+            message: error.message
+        });
+    }
+};
+
+
+export const updateMedicine = async(req, res) => {
+
+    try {
+
+        const { id } = req.params;
+        const { name, description, category, expiryDate, sellingPrice, requiresPrescription, lowStockThreshold } = req.body;
+
+        if(!mongoose.isValidObjectId(id)) {
+            return res.status(404).json({
+                message: "Medicine not found"
+            });
+        }
+
+        const medicine = await Medicine.findById(id);
+
+        if(!medicine) {
+            return res.status(404).json({
+                message: "Medicine not found"
+            });
+        }
+
+        if(name !== undefined) {
+            if(!String(name).trim()) {
+                return res.status(400).json({
+                    message: "Medicine name is required"
+                });
+            }
+
+            medicine.name = String(name).trim();
+        }
+
+        if(description !== undefined) {
+            medicine.description = String(description).trim();
+        }
+
+        if(category !== undefined) {
+            medicine.category = String(category).trim();
+        }
+
+        if(expiryDate !== undefined) {
+            const parsedExpiryDate = new Date(expiryDate);
+
+            if(Number.isNaN(parsedExpiryDate.getTime()) || parsedExpiryDate <= new Date()) {
+                return res.status(400).json({
+                    message: "Expiry date must be a valid future date"
+                });
+            }
+
+            medicine.expiryDate = parsedExpiryDate;
+        }
+
+        if(sellingPrice !== undefined) {
+            if(!Number.isFinite(Number(sellingPrice)) || Number(sellingPrice) < 0) {
+                return res.status(400).json({
+                    message: "Selling price must be a valid number"
+                });
+            }
+
+            medicine.sellingPrice = Number(sellingPrice);
+        }
+
+        if(lowStockThreshold !== undefined) {
+            if(!Number.isInteger(Number(lowStockThreshold)) || Number(lowStockThreshold) < 0) {
+                return res.status(400).json({
+                    message: "Low stock threshold must be a whole number zero or greater"
+                });
+            }
+
+            medicine.lowStockThreshold = Number(lowStockThreshold);
+        }
+
+        if(requiresPrescription !== undefined) {
+            medicine.requiresPrescription = requiresPrescription === true || requiresPrescription === "true";
+        }
+
+        await medicine.save();
+
+        res.status(200).json({
+            message: "Medicine updated successfully",
+            medicine
+        });
+    }
 
     catch(error) {
         res.status(500).json({

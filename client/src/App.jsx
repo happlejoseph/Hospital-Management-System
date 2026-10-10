@@ -19,11 +19,13 @@ import AdminDashboard from "./pages/admin/Dashboard";
 import AdminDepartments from "./pages/admin/Departments";
 import AdminDoctors from "./pages/admin/Doctors";
 import AdminUsers from "./pages/admin/Users";
+import Admins from "./pages/admin/Admins";
 import AdminAppointments from "./pages/admin/Appointments";
 import AdminPharmacy from "./pages/admin/Pharmacy";
-import AdminMedicalRecords from "./pages/admin/MedicalRecords";
+import AdminPharmacists from "./pages/admin/Pharmacists";
 import PharmacistDashboard from "./pages/pharmacist/Dashboard";
 import PublicMedicines from "./pages/public/Medicines";
+import MedicineDetail from "./pages/public/MedicineDetail";
 import PharmacistMedicines from "./pages/pharmacist/Medicines";
 import Purchase from "./pages/pharmacist/Purchase";
 import Dispense from "./pages/pharmacist/Dispense";
@@ -33,6 +35,10 @@ import MedicineCart from "./pages/public/MedicineCart";
 import MedicineCheckout from "./pages/public/MedicineCheckout";
 import PharmacistOrders from "./pages/pharmacist/Orders";
 import MedicineOrders from "./pages/patient/MedicineOrders";
+import DoctorDashboard from "./pages/doctor/Dashboard";
+import DoctorAppointments from "./pages/doctor/Appointments";
+import DoctorMedicalRecords from "./pages/doctor/MedicalRecords";
+import DoctorLayout from "./layouts/DoctorLayout";
 
 
 
@@ -50,22 +56,29 @@ const App = () => (
                 <Route path="/login" element={<PublicLayout><Login /></PublicLayout>} />
                 <Route path="/register" element={<PublicLayout><Register /></PublicLayout>} />
 
-                <Route path="/medicines"element={<PublicLayout><PublicMedicines /></PublicLayout>}/>
+                <Route path="/medicines" element={<PublicLayout><PublicMedicines /></PublicLayout>} />
+                <Route path="/medicines/:id" element={<PublicLayout><MedicineDetail /></PublicLayout>} />
                 <Route path="/medicine-cart"element={<ProtectedRoute allowedRoles={["patient"]}><PublicLayout><MedicineCart /></PublicLayout></ProtectedRoute>}/>
                 <Route path="/medicine-checkout"element={<ProtectedRoute allowedRoles={["patient"]}><PublicLayout><MedicineCheckout /></PublicLayout></ProtectedRoute>}/>
 
-                <Route path="/appointments" element={<ProtectedRoute><PublicLayout><Appointments /></PublicLayout></ProtectedRoute>} />
+                <Route path="/appointments" element={<ProtectedRoute allowedRoles={["patient"]}><PublicLayout><Appointments /></PublicLayout></ProtectedRoute>} />
 
                 <Route path="/admin" element={<ProtectedRoute allowedRoles={["admin"]}><AdminLayout><AdminDashboard /></AdminLayout></ProtectedRoute>} />
                 <Route path="/admin/departments" element={<ProtectedRoute allowedRoles={["admin"]}><AdminLayout><AdminDepartments /></AdminLayout></ProtectedRoute>} />
                 <Route path="/admin/doctors" element={<ProtectedRoute allowedRoles={["admin"]}><AdminLayout><AdminDoctors /></AdminLayout></ProtectedRoute>} />
                 <Route path="/admin/users" element={<ProtectedRoute allowedRoles={["admin"]}><AdminLayout><AdminUsers /></AdminLayout></ProtectedRoute>} />
+                <Route path="/admin/admins" element={<ProtectedRoute allowedRoles={["admin"]}><AdminLayout><Admins /></AdminLayout></ProtectedRoute>} />
                 <Route path="/admin/appointments" element={<ProtectedRoute allowedRoles={["admin"]}><AdminLayout><AdminAppointments /></AdminLayout></ProtectedRoute>} />
+                <Route path="/admin/pharmacists" element={<ProtectedRoute allowedRoles={["admin"]}><AdminLayout><AdminPharmacists /></AdminLayout></ProtectedRoute>} />
                 <Route path="/admin/pharmacy" element={<ProtectedRoute allowedRoles={["admin"]}><AdminLayout><AdminPharmacy /></AdminLayout></ProtectedRoute>} />
-                <Route path="/admin/medical-records" element={<ProtectedRoute allowedRoles={["admin"]}><AdminLayout><AdminMedicalRecords /></AdminLayout></ProtectedRoute>} />
+                <Route path="/admin/medicine-orders" element={<ProtectedRoute allowedRoles={["admin"]}><AdminLayout><PharmacistOrders /></AdminLayout></ProtectedRoute>} />
 
                 <Route path="/pharmacist" element={<ProtectedRoute allowedRoles={["pharmacist"]}><PharmacistLayout><PharmacistDashboard /></PharmacistLayout></ProtectedRoute>} />
                 
+                <Route path="/doctor" element={<ProtectedRoute allowedRoles={["doctor"]}><DoctorLayout><DoctorDashboard /></DoctorLayout></ProtectedRoute>} />
+                <Route path="/doctor/appointments" element={<ProtectedRoute allowedRoles={["doctor"]}><DoctorLayout><DoctorAppointments /></DoctorLayout></ProtectedRoute>} />
+                <Route path="/doctor/medical-records" element={<ProtectedRoute allowedRoles={["doctor"]}><DoctorLayout><DoctorMedicalRecords /></DoctorLayout></ProtectedRoute>} />
+
                 <Route path="/pharmacist/orders"element={<ProtectedRoute allowedRoles={["pharmacist"]}><PharmacistLayout><PharmacistOrders /></PharmacistLayout></ProtectedRoute>}/>
                 <Route path="/medicine-orders"element={<ProtectedRoute allowedRoles={["patient"]}><PublicLayout><MedicineOrders /></PublicLayout></ProtectedRoute>}/>
                 

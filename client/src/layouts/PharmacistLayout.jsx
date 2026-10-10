@@ -19,7 +19,8 @@ const PharmacistLayout = ({ children }) => {
         { label: "Medicine Stock", path: "/pharmacist/medicines" },
         { label: "Purchase Medicines", path: "/pharmacist/purchase" },
         { label: "Dispense Medicines", path: "/pharmacist/dispense" },
-        { label: "Inventory Reports", path: "/pharmacist/reports" }
+        { label: "Inventory Reports", path: "/pharmacist/reports" },
+        { label: "Medicine Orders", path: "/pharmacist/orders" }
     ];
 
     return (
@@ -27,8 +28,8 @@ const PharmacistLayout = ({ children }) => {
         <div className="dashboard-shell">
             <aside className="sidebar">
                 <Link to="/" className="sidebar-brand">
-                    <span className="brand-mark">H</span>
-                    <span>CarePoint</span>
+                    <img src="https://res.cloudinary.com/eneepkso/image/upload/v1791138326/264488-middle.png" alt="Arogya Hospital Logo" className="hospital-logo" />
+                    <span>Arogya Hospital</span>
                 </Link>
 
                 <div className="sidebar-role">PHARMACIST</div>

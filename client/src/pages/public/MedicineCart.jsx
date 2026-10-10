@@ -7,6 +7,7 @@ const MedicineCart = () => {
     const {
         cartItems,
         cartTotal,
+        prescriptionRequired,
         increaseQuantity,
         decreaseQuantity,
         removeFromCart
@@ -48,6 +49,12 @@ const MedicineCart = () => {
                     </h1>
                 </div>
 
+                {prescriptionRequired && (
+                    <div className="mb-6 rounded-lg bg-amber-50 p-4 text-sm text-amber-700">
+                        Some medicines in your cart need a doctor prescription. You will be asked to upload a prescription PDF at checkout.
+                    </div>
+                )}
+
                 <div className="grid gap-8 lg:grid-cols-[1fr_350px]">
                     <div className="space-y-4">
                         {cartItems.map((medicine) => (
@@ -56,20 +63,30 @@ const MedicineCart = () => {
                                 className="rounded-xl bg-white p-6 shadow-sm"
                             >
                                 <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-                                    <div>
-                                        <h2 className="text-lg font-semibold text-slate-900">
-                                            {medicine.name}
-                                        </h2>
+                                    <div className="flex items-center gap-4">
+                                        <Link to={`/medicines/${medicine._id}`} className="flex h-20 w-20 shrink-0 items-center justify-center rounded-lg bg-slate-100">
+                                            {medicine.image ? (
+                                                <img src={medicine.image} alt={medicine.name} className="h-full w-full object-contain p-2" />
+                                            ) : (
+                                                <span className="text-xs text-slate-400">No image</span>
+                                            )}
+                                        </Link>
 
-                                        <p className="mt-2 text-sm text-slate-500">
-                                            ₹{medicine.sellingPrice} per unit
-                                        </p>
+                                        <div>
+                                            <Link to={`/medicines/${medicine._id}`} className="text-lg font-semibold text-slate-900 hover:text-[#0f6b78]">
+                                                {medicine.name}
+                                            </Link>
 
-                                        {medicine.requiresPrescription && (
-                                            <p className="mt-2 text-sm text-amber-700">
-                                                Doctor prescription required
+                                            <p className="mt-2 text-sm text-slate-500">
+                                                ₹{medicine.sellingPrice} per unit
                                             </p>
-                                        )}
+
+                                            {medicine.requiresPrescription && (
+                                                <span className="mt-2 inline-block rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-700">
+                                                    Prescription Required
+                                                </span>
+                                            )}
+                                        </div>
                                     </div>
 
                                     <div className="flex items-center gap-4">

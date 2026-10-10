@@ -16,7 +16,7 @@ const Doctors = () => {
 
     const loadData = async() => {
 
-        const [doctorResponse, departmentResponse] = await Promise.all([api.get("/doctors"), api.get("/departments")]);
+        const [doctorResponse, departmentResponse] = await Promise.all([api.get("/doctors"), api.get("/departments/admin/all")]);
         setDoctors(doctorResponse.data.doctors || []);
         setDepartments(departmentResponse.data.departments || []);
     };
@@ -32,8 +32,7 @@ const Doctors = () => {
         try {
             
             if(editingId) {
-                const { password, email, ...updateForm } = form;
-                await api.put(`/doctors/${editingId}`, { ...updateForm, email });
+                await api.put(`/doctors/${editingId}`, { ...form, experience: Number(form.experience) });
                 setMessage("Doctor updated successfully");
             }
             else {
@@ -85,7 +84,7 @@ const Doctors = () => {
                     <label>Experience (years)<input type="number" min="0" value={form.experience} onChange={(e) => setForm({ ...form, experience: e.target.value })} required /></label>
                     <label>Department<select value={form.department} onChange={(e) => setForm({ ...form, department: e.target.value })} required><option value="">Select department</option>{departments.map((department) => <option key={department._id} value={department.name}>{department.name}</option>)}</select></label>
                     <label>Status<select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}><option value="active">Active</option><option value="inactive">Inactive</option></select></label>
-                    <label className="form-actions">Cloudinary doctor image URL<input value={form.image} onChange={(e) => setForm({ ...form, image: e.target.value })} placeholder="Paste Cloudinary image URL here later" /></label>
+                    <label className="form-actions">Cloudinary doctor image URL<input value={form.image} onChange={(e) => setForm({ ...form, image: e.target.value })} placeholder="Paste doctor image URL here" /></label>
                     <div className="form-actions"><button className="button button-dark" type="submit">{editingId ? "Update Doctor" : "Add Doctor"}</button>{editingId && <button className="outline-button admin-cancel" type="button" onClick={() => { setEditingId(null); setForm(emptyForm); }}>Cancel</button>}</div>
                 </div>
             </form>

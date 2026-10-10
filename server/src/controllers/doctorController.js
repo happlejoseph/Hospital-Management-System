@@ -22,9 +22,15 @@ export const createDoctor = async(req, res)=> {
 
         const existingUser = await User.findOne({email: normalizedEmail});
 
-        if(!existingUser) {
+        if(existingUser) {
             return res.status(400).json({
                 message: 'Email already registered'
+            });
+        }
+
+        if(password.length < 6) {
+            return res.status(400).json({
+                message: 'Password must be at least 6 characters'
             });
         }
 
@@ -38,18 +44,27 @@ export const createDoctor = async(req, res)=> {
             status: "active"
         });
 
-        const doctor = await Doctor.create({
-            user: user._id,
-            name,
-            email: normalizedEmail,
-            phone,
-            specialization,
-            qualification,
-            experience,
-            department,
-            image,
-            status: "active"
-        });
+        let doctor;
+
+        try {
+            doctor = await Doctor.create({
+                user: user._id,
+                name,
+                email: normalizedEmail,
+                phone,
+                specialization,
+                qualification,
+                experience,
+                department,
+                image,
+                status: "active"
+            });
+        }
+
+        catch(error) {
+            await User.findByIdAndDelete(user._id);
+            throw error;
+        }
 
         res.status(201).json({
             message: 'Doctor created successfully',
@@ -63,6 +78,8 @@ export const createDoctor = async(req, res)=> {
         });
     }
 }
+
+
 
 
 
@@ -84,7 +101,8 @@ export const getAllDoctors = async(req, res)=> {
 
 
 
-// viewer doctor //
+
+
 export const getPublicDoctors = async(req, res)=> {
 
     try {
@@ -108,7 +126,7 @@ export const getPublicDoctors = async(req, res)=> {
 
 
 
-// viewer //
+
 export const getPublicDoctorById = async(req, res) => {
 
     try {
@@ -138,7 +156,7 @@ export const getDoctorById = async(req, res)=> {
 
         const {id} = req.params;
 
-        const doctor = Doctor.findById(id).populate('user', 'name email role status')
+        const doctor = await Doctor.findById(id).populate('user', 'name email role status')
 
         if(!doctor) {
             return res.status(404).json({
@@ -163,7 +181,7 @@ export const updateDoctor = async(req, res) => {
 
     try {
 
-        const { name, email, phone, specialization, qualification, experience, department, status, image = "" } = req.body;
+        const { name, email, phone, specialization, qualification, experience, department, status, image } = req.body;
 
         const doctor = await Doctor.findById(req.params.id);
 
@@ -174,14 +192,28 @@ export const updateDoctor = async(req, res) => {
         }
 
         doctor.name = name ?? doctor.name;
-        doctor.email = email?.toLowerCase().trim() ?? doctor.email;
+        if(email) {
+            const normalizedEmail = email.toLowerCase().trim();
+            const existingUser = await User.findOne({
+                email: normalizedEmail,
+                _id: { $ne: doctor.user }
+            });
+
+            if(existingUser) {
+                return res.status(400).json({
+                    message: "Email already registered"
+                });
+            }
+
+            doctor.email = normalizedEmail;
+        }
         doctor.phone = phone ?? doctor.phone;
         doctor.specialization = specialization ?? doctor.specialization;
         doctor.qualification = qualification ?? doctor.qualification;
         doctor.experience = experience ?? doctor.experience;
         doctor.department = department ?? doctor.department;
         doctor.status = status ?? doctor.status;
-        doctor.image = image;
+        doctor.image = image ?? doctor.image;
 
         await doctor.save();
 
@@ -205,7 +237,7 @@ export const updateDoctor = async(req, res) => {
 
 
 
-// delete //
+
 export const deleteDoctor = async(req, res) => {
 
     try {

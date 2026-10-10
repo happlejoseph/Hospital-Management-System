@@ -10,6 +10,23 @@ const medicineSchema = new mongoose.Schema({
         trim: true
     },
 
+    image: {
+        type: String,
+        default: ""
+    },
+
+    description: {
+        type: String,
+        trim: true,
+        default: ""
+    },
+
+    category: {
+        type: String,
+        trim: true,
+        default: ""
+    },
+
     batchNumber: {
         type: String,
         required: true,

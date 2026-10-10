@@ -1,30 +1,61 @@
 
 
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import api from "../../services/api";
+import { openPrescription } from "../../utils/prescription";
 
 const MedicineOrders = () => {
     const [orders, setOrders] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
+    const [message, setMessage] = useState("");
+
+    const loadOrders = async () => {
+        try {
+            const response = await api.get("/medicine-orders/my");
+            setOrders(response.data.orders || []);
+        } catch (error) {
+            setError(
+                error.response?.data?.message ||
+                "Unable to load your medicine orders."
+            );
+        } finally {
+            setLoading(false);
+        }
+    };
 
     useEffect(() => {
-        const loadOrders = async () => {
-            try {
-                const response = await api.get("/medicine-orders/my");
-                setOrders(response.data.orders || []);
-            } catch (error) {
-                setError(
-                    error.response?.data?.message ||
-                    "Unable to load your medicine orders."
-                );
-            } finally {
-                setLoading(false);
-            }
-        };
-
         loadOrders();
     }, []);
+
+    const cancelOrder = async (orderId) => {
+        if (!window.confirm("Cancel this medicine order?")) return;
+
+        setError("");
+        setMessage("");
+
+        try {
+            const response = await api.put(`/medicine-orders/${orderId}/cancel`);
+            setMessage(response.data.message);
+            await loadOrders();
+        } catch (error) {
+            setError(
+                error.response?.data?.message ||
+                "Unable to cancel medicine order."
+            );
+        }
+    };
+
+    const viewPrescription = async (orderId) => {
+        setError("");
+
+        try {
+            await openPrescription(orderId);
+        } catch {
+            setError("Unable to open the prescription.");
+        }
+    };
 
     if (loading) {
         return (
@@ -53,11 +84,24 @@ const MedicineOrders = () => {
                     </div>
                 )}
 
+                {message && (
+                    <div className="mb-6 rounded-lg bg-green-50 p-4 text-green-700">
+                        {message}
+                    </div>
+                )}
+
                 {orders.length === 0 ? (
                     <div className="rounded-xl bg-white p-10 text-center shadow-sm">
                         <h2 className="text-xl font-semibold text-slate-800">
                             No medicine orders yet
                         </h2>
+
+                        <Link
+                            to="/medicines"
+                            className="mt-6 inline-block rounded-lg bg-[#0f6b78] px-6 py-3 font-medium text-white hover:bg-[#09545f]"
+                        >
+                            Browse Medicines
+                        </Link>
                     </div>
                 ) : (
                     <div className="space-y-6">
@@ -89,7 +133,7 @@ const MedicineOrders = () => {
                                         >
                                             <div>
                                                 <p className="font-medium text-slate-800">
-                                                    {item.medicine?.name}
+                                                    {item.medicine?.name || "Medicine no longer available"}
                                                 </p>
                                                 <p className="text-sm text-slate-500">
                                                     ₹{item.price} × {item.quantity}
@@ -117,12 +161,65 @@ const MedicineOrders = () => {
                                     </span>
                                 </div>
 
-                                <div className="mt-4 text-sm text-slate-500">
-                                    Ordered on{" "}
-                                    {new Date(
-                                        order.createdAt
-                                    ).toLocaleDateString()}
+                                <div className="mt-4 grid gap-4 border-t border-slate-100 pt-4 text-sm text-slate-500 sm:grid-cols-2">
+                                    <div>
+                                        <p className="font-medium text-slate-700">
+                                            Payment
+                                        </p>
+                                        <p className="mt-1 capitalize">
+                                            {order.paymentMethod === "cod"
+                                                ? "Cash on Delivery"
+                                                : order.paymentMethod}
+                                            {" · "}
+                                            {order.paymentStatus}
+                                        </p>
+                                    </div>
+
+                                    <div>
+                                        <p className="font-medium text-slate-700">
+                                            Ordered on
+                                        </p>
+                                        <p className="mt-1">
+                                            {new Date(
+                                                order.createdAt
+                                            ).toLocaleDateString()}
+                                        </p>
+                                    </div>
+
+                                    <div className="sm:col-span-2">
+                                        <p className="font-medium text-slate-700">
+                                            Delivery Address
+                                        </p>
+                                        <p className="mt-1">
+                                            {order.shippingAddress}
+                                        </p>
+                                    </div>
+
+                                    {order.prescription?.fileUrl && (
+                                        <div className="sm:col-span-2">
+                                            <p className="font-medium text-slate-700">
+                                                Prescription
+                                            </p>
+                                            <button
+                                                type="button"
+                                                onClick={() => viewPrescription(order._id)}
+                                                className="mt-1 font-medium text-[#0f6b78] hover:text-[#09545f]"
+                                            >
+                                                {order.prescription.fileName || "View prescription"}
+                                            </button>
+                                        </div>
+                                    )}
                                 </div>
+
+                                {order.status === "pending" && (
+                                    <button
+                                        type="button"
+                                        onClick={() => cancelOrder(order._id)}
+                                        className="mt-6 rounded-lg border border-red-300 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50"
+                                    >
+                                        Cancel Order
+                                    </button>
+                                )}
                             </div>
                         ))}
                     </div>

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import api from "../../services/api";
+import { openPrescription } from "../../utils/prescription";
 
 const Orders = () => {
     const [orders, setOrders] = useState([]);
@@ -40,6 +41,16 @@ const Orders = () => {
                 error.response?.data?.message ||
                 "Unable to update order status"
             );
+        }
+    };
+
+    const viewPrescription = async (orderId) => {
+        setError("");
+
+        try {
+            await openPrescription(orderId);
+        } catch {
+            setError("Unable to open the prescription.");
         }
     };
 
@@ -198,6 +209,11 @@ const Orders = () => {
                                                         <td className="px-3 py-3 font-medium text-slate-800">
                                                             {item.medicine?.name ||
                                                                 "Medicine"}
+                                                            {item.medicine?.requiresPrescription && (
+                                                                <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-700">
+                                                                    Rx
+                                                                </span>
+                                                            )}
                                                         </td>
 
                                                         <td className="px-3 py-3 text-slate-600">
@@ -243,17 +259,16 @@ const Orders = () => {
                                     </h2>
 
                                     {order.prescription?.fileUrl ? (
-                                        <a
-                                            href={`http://localhost:3001${order.prescription.fileUrl}`}
-                                            target="_blank"
-                                            rel="noreferrer"
+                                        <button
+                                            type="button"
+                                            onClick={() => viewPrescription(order._id)}
                                             className="mt-2 inline-block rounded-lg bg-amber-50 px-4 py-3 text-sm font-medium text-amber-700 hover:bg-amber-100"
                                         >
                                             View Prescription PDF
-                                        </a>
+                                        </button>
                                     ) : (
                                         <p className="mt-2 text-sm text-slate-500">
-                                            No prescription uploaded.
+                                            {order.prescriptionRequired ? "Prescription missing for this order." : "Prescription not required."}
                                         </p>
                                     )}
                                 </div>
@@ -290,7 +305,8 @@ const Orders = () => {
                             </div>
 
                             <div className="mt-4">
-                                {order.paymentMethod === "cod" &&
+                                {order.status === "delivered" &&
+                                    order.paymentMethod === "cod" &&
                                     order.paymentStatus !== "paid" && (
                                         <button
                                             type="button"
@@ -318,88 +334,72 @@ const Orders = () => {
                                 </div>
 
                                 <div className="flex flex-wrap gap-2">
-                                    {order.status !== "confirmed" &&
-                                        order.status !== "delivered" &&
-                                        order.status !== "cancelled" && (
+                                    {order.status === "pending" && (
+                                        <>
                                             <button
                                                 type="button"
-                                                onClick={() =>
-                                                    updateStatus(
-                                                        order._id,
-                                                        "confirmed"
-                                                    )
-                                                }
+                                                onClick={() => updateStatus(order._id, "confirmed")}
                                                 className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
                                             >
                                                 Confirm
                                             </button>
-                                        )}
-
-                                    {order.status !== "processing" &&
-                                        order.status !== "delivered" &&
-                                        order.status !== "cancelled" && (
                                             <button
                                                 type="button"
-                                                onClick={() =>
-                                                    updateStatus(
-                                                        order._id,
-                                                        "processing"
-                                                    )
-                                                }
-                                                className="rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium text-white hover:bg-purple-700"
-                                            >
-                                                Processing
-                                            </button>
-                                        )}
-
-                                    {order.status !== "ready" &&
-                                        order.status !== "delivered" &&
-                                        order.status !== "cancelled" && (
-                                            <button
-                                                type="button"
-                                                onClick={() =>
-                                                    updateStatus(
-                                                        order._id,
-                                                        "ready"
-                                                    )
-                                                }
-                                                className="rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700"
-                                            >
-                                                Ready
-                                            </button>
-                                        )}
-
-                                    {order.status !== "delivered" &&
-                                        order.status !== "cancelled" && (
-                                            <button
-                                                type="button"
-                                                onClick={() =>
-                                                    updateStatus(
-                                                        order._id,
-                                                        "delivered"
-                                                    )
-                                                }
-                                                className="rounded-lg bg-[#0f6b78] px-4 py-2 text-sm font-medium text-white hover:bg-[#09545f]"
-                                            >
-                                                Delivered
-                                            </button>
-                                        )}
-
-                                    {order.status !== "cancelled" &&
-                                        order.status !== "delivered" && (
-                                            <button
-                                                type="button"
-                                                onClick={() =>
-                                                    updateStatus(
-                                                        order._id,
-                                                        "cancelled"
-                                                    )
-                                                }
+                                                onClick={() => updateStatus(order._id, "cancelled")}
                                                 className="rounded-lg border border-red-300 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50"
                                             >
                                                 Cancel
                                             </button>
-                                        )}
+                                        </>
+                                    )}
+
+                                    {order.status === "confirmed" && (
+                                        <>
+                                            <button
+                                                type="button"
+                                                onClick={() => updateStatus(order._id, "processing")}
+                                                className="rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium text-white hover:bg-purple-700"
+                                            >
+                                                Processing
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => updateStatus(order._id, "cancelled")}
+                                                className="rounded-lg border border-red-300 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50"
+                                            >
+                                                Cancel
+                                            </button>
+                                        </>
+                                    )}
+
+                                    {order.status === "processing" && (
+                                        <>
+                                            <button
+                                                type="button"
+                                                onClick={() => updateStatus(order._id, "ready")}
+                                                className="rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700"
+                                            >
+                                                Ready
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => updateStatus(order._id, "cancelled")}
+                                                className="rounded-lg border border-red-300 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50"
+                                            >
+                                                Cancel
+                                            </button>
+                                        </>
+                                    )}
+
+                                    {order.status === "ready" && (
+                                        <button
+                                            type="button"
+                                            onClick={() => updateStatus(order._id, "delivered")}
+                                            className="rounded-lg bg-[#0f6b78] px-4 py-2 text-sm font-medium text-white hover:bg-[#09545f]"
+                                        >
+                                            Delivered
+                                        </button>
+                                    )}
                                 </div>
                             </div>
                         </div>

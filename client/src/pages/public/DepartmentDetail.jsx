@@ -21,7 +21,7 @@ const DepartmentDetail = () => {
                 });
                 setDoctors(doctorsResponse.data.doctors || []);
             }
-            catch(error) {
+            catch {
                 setDepartment(null);
                 setDoctors([]);
             }

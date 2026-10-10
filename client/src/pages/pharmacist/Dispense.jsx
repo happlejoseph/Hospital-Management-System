@@ -16,7 +16,7 @@ const Dispense = () => {
             const response = await api.get("/medicines");
             setMedicines(response.data.medicines);
         }
-        catch(error) {
+        catch {
             setError("Unable to load medicines");
         }
     };

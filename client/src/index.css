@@ -40,6 +40,64 @@ button {
     min-height: 100vh;
 }
 
+
+.mobile-menu-button {
+    display: none;
+    border: 0;
+    background: transparent;
+    font-size: 28px;
+    color: #17202a;
+}
+
+.navbar-content {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 28px;
+    flex: 1;
+}
+
+@media (max-width: 1100px) {
+    .navbar {
+        position: relative;
+        flex-wrap: wrap;
+        padding: 12px 5vw;
+    }
+
+    .mobile-menu-button {
+        display: block;
+    }
+
+    .navbar-content {
+        display: none;
+        width: 100%;
+        padding: 14px 0 8px;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 16px;
+    }
+
+    .navbar-content.open {
+        display: flex;
+    }
+
+    .nav-links,
+    .nav-actions {
+        flex-wrap: wrap;
+        justify-content: flex-start;
+        gap: 12px 18px;
+    }
+
+    .nav-links {
+        width: 100%;
+    }
+
+    .nav-dropdown-menu {
+        position: static;
+        margin-top: 8px;
+        min-width: 220px;
+    }
+}
 .navbar {
     min-height: 76px;
     padding: 0 6vw;
@@ -64,17 +122,6 @@ button {
     gap: 10px;
     font-weight: 750;
     letter-spacing: -0.3px;
-}
-
-.brand-mark {
-    width: 34px;
-    height: 34px;
-    border-radius: 10px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    background: #153b50;
-    color: #ffffff;
 }
 
 .nav-links,
@@ -547,9 +594,10 @@ select:focus {
     padding: 0 8px;
 }
 
-.sidebar-brand .brand-mark {
-    background: #ffffff;
-    color: #153b50;
+.sidebar-brand .hospital-logo {
+    width: 42px;
+    height: 42px;
+    object-fit: contain;
 }
 
 .sidebar-role {
@@ -1463,8 +1511,7 @@ textarea:focus {
     gap: 18px;
 }
 
-.quick-card,
-.management-card {
+.quick-card {
     min-height: 130px;
     padding: 22px;
     border: 1px solid #e2eaed;
@@ -1477,20 +1524,17 @@ textarea:focus {
 }
 
 .quick-card:hover,
-.management-card:hover,
 .stat-card:hover {
     transform: translateY(-3px);
     box-shadow: 0 16px 35px rgba(27, 68, 83, 0.1);
 }
 
-.quick-card strong,
-.management-card strong {
+.quick-card strong {
     color: #173c4d;
     font-size: 16px;
 }
 
-.quick-card span,
-.management-card span {
+.quick-card span {
     color: #718087;
     font-size: 13px;
     line-height: 1.6;
@@ -1547,15 +1591,6 @@ textarea:focus {
     font-size: 12px;
 }
 
-.management-grid {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 18px;
-}
-
-.management-card {
-    min-height: 115px;
-}
 
 .admin-two-column {
     display: grid;
@@ -1618,8 +1653,7 @@ textarea:focus {
 @media (max-width: 900px) {
     .stats-grid,
     .quick-grid,
-    .activity-grid,
-    .management-grid {
+    .activity-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
@@ -1631,8 +1665,72 @@ textarea:focus {
 @media (max-width: 620px) {
     .stats-grid,
     .quick-grid,
-    .activity-grid,
-    .management-grid {
+    .activity-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.appointment-status.processing {
+    background: #fff4dd;
+    color: #8a6014;
+}
+
+.appointment-status.ready {
+    background: #e2f0f7;
+    color: #21617a;
+}
+
+.appointment-status.delivered {
+    background: #e3f5ea;
+    color: #267044;
+}
+
+
+.medicine-table-image {
+    width: 56px;
+    height: 56px;
+    object-fit: contain;
+    border-radius: 8px;
+    background: #f5f7f8;
+}
+
+.medicine-image-placeholder {
+    display: inline-flex;
+    width: 56px;
+    height: 56px;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    background: #f5f7f8;
+    color: #87929a;
+    font-size: 11px;
+    text-align: center;
+}
+
+.stats-grid-four {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.filter-card {
+    width: 100%;
+    text-align: left;
+    font: inherit;
+    cursor: pointer;
+}
+
+.filter-card.active {
+    border-color: #0f6b78;
+    box-shadow: 0 0 0 2px rgba(15, 107, 120, 0.15);
+}
+
+@media (max-width: 1100px) {
+    .stats-grid-four {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 620px) {
+    .stats-grid-four {
         grid-template-columns: 1fr;
     }
 }

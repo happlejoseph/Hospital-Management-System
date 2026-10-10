@@ -9,39 +9,29 @@ import MedicineTransaction from "../models/MedicineTransaction.js";
 import MedicineOrder from "../models/MedicineOrder.js";
 
 
-
-
 export const getAdminDashboard = async(req, res) => {
 
     try {
 
-        const [totalPatients, totalDoctors, totalDepartments, totalAppointments, totalMedicines, medicines, totalMedicineOrders, pendingMedicineOrders, deliveredMedicineOrders, cancelledMedicineOrders, paidMedicineOrders, pendingPaymentOrders] = await Promise.all([
-
+        const [
+            totalPatients,
+            totalDoctors,
+            totalPharmacists,
+            totalAdmins,
+            totalDepartments,
+            totalAppointments,
+            pendingAppointments,
+            totalMedicines
+        ] = await Promise.all([
             User.countDocuments({ role: "patient" }),
-            Doctor.countDocuments({ status: "active" }),
-            Department.countDocuments({ status: "active" }),
+            Doctor.countDocuments(),
+            User.countDocuments({ role: "pharmacist" }),
+            User.countDocuments({ role: "admin" }),
+            Department.countDocuments(),
             Appointment.countDocuments(),
-            Medicine.countDocuments(),
-
-            Medicine.find().select("name quantity lowStockThreshold"),
-
-            MedicineOrder.countDocuments(),
-            MedicineOrder.countDocuments({status: 'pending'}),
-            MedicineOrder.countDocuments({status: 'delivered'}),
-            MedicineOrder.countDocuments({status: 'cancelled'}),
-
-            MedicineOrder.find({paymentStatus: 'paid'}).select('totalAmount'),
-            MedicineOrder.find({paymentStatus: 'pending'}).select('totalAmount')
-
+            Appointment.countDocuments({ status: "pending" }),
+            Medicine.countDocuments()
         ]);
-
-        const totalMedicineRevenue = pendingPaymentOrders.reduce(
-            (total, order)=> total + order.totalAmount, 0
-        )
-
-        const lowStockMedicines = medicines.filter(
-            (medicine) => medicine.quantity <= medicine.lowStockThreshold
-        );
 
         const recentAppointments = await Appointment.find()
             .populate("patient", "name email")
@@ -53,7 +43,6 @@ export const getAdminDashboard = async(req, res) => {
             .select("name email status createdAt")
             .sort({ createdAt: -1 })
             .limit(5);
-            
 
         const recentMedicineTransactions = await MedicineTransaction.find()
             .populate("medicine", "name batchNumber")
@@ -62,27 +51,21 @@ export const getAdminDashboard = async(req, res) => {
             .limit(5);
 
         const recentMedicineOrders = await MedicineOrder.find()
-        .populate('patient', 'name email')
-        .populate('medicines.medicine', 'name sellingPrice')
-
-        .sort({createdAt: -1})
-        .limit(5);
+            .populate("patient", "name email")
+            .populate("medicines.medicine", "name sellingPrice")
+            .sort({ createdAt: -1 })
+            .limit(5);
 
         res.status(200).json({
             summary: {
                 totalPatients,
                 totalDoctors,
+                totalPharmacists,
+                totalAdmins,
                 totalDepartments,
                 totalAppointments,
-                totalMedicines,
-                lowStockMedicines: lowStockMedicines.length,
-
-                totalMedicineOrders,
-                pendingMedicineOrders,
-                deliveredMedicineOrders,
-                cancelledMedicineOrders,
-                totalMedicineRevenue,
-                pendingMedicinePayment
+                pendingAppointments,
+                totalMedicines
             },
             recentAppointments,
             recentPatients,

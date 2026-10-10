@@ -2,11 +2,13 @@
 
 
 import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import api from "../../services/api";
 
 const Purchase = () => {
     const [medicines, setMedicines] = useState([]);
-    const [medicineId, setMedicineId] = useState("");
+    const [searchParams] = useSearchParams();
+    const [medicineId, setMedicineId] = useState(searchParams.get("medicine") || "");
     const [formData, setFormData] = useState({ quantity: "", supplier: "", purchasePrice: "" });
     const [message, setMessage] = useState("");
     const [error, setError] = useState("");

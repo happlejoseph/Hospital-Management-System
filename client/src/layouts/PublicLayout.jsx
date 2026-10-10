@@ -13,7 +13,7 @@ const PublicLayout = ({ children }) => {
                     <strong>Arogya Hospital</strong>
                     <p>Quality healthcare with trusted medical professionals.</p>
                 </div>
-                <p>© 2026 CarePoint Hospital. All rights reserved.</p>
+                <p>© 2026 Arogya Hospital. All rights reserved.</p>
             </footer>
         </div>
     );

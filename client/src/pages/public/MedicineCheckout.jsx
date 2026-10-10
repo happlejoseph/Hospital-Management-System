@@ -1,7 +1,7 @@
 
 
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import api from "../../services/api";
 import { useAuth } from "../../context/AuthContext";
 import { useMedicineCart } from "../../context/MedicineCartContext";
@@ -18,16 +18,19 @@ const MedicineCheckout = () => {
     const [error, setError] = useState("");
     const [message, setMessage] = useState("");
     const [placingOrder, setPlacingOrder] = useState(false);
+    const [orderPlaced, setOrderPlaced] = useState(false);
 
-    const prescriptionRequired = cartItems.some(
+    const prescriptionMedicines = cartItems.filter(
         (item) => item.requiresPrescription
     );
 
+    const prescriptionRequired = prescriptionMedicines.length > 0;
+
     useEffect(() => {
-        if (cartItems.length === 0) {
+        if (cartItems.length === 0 && !orderPlaced) {
             navigate("/medicines");
         }
-    }, [cartItems, navigate]);
+    }, [cartItems, orderPlaced, navigate]);
 
     const handleFileChange = (event) => {
         const file = event.target.files[0];
@@ -122,11 +125,8 @@ const MedicineCheckout = () => {
                 "Medicine order placed successfully."
             );
 
+            setOrderPlaced(true);
             clearCart();
-
-            setTimeout(() => {
-                navigate("/medicines");
-            }, 1500);
         } catch (error) {
             setError(
                 error.response?.data?.message ||
@@ -136,6 +136,38 @@ const MedicineCheckout = () => {
             setPlacingOrder(false);
         }
     };
+
+    if (orderPlaced) {
+        return (
+            <div className="min-h-[70vh] bg-slate-50 px-6 py-20">
+                <div className="mx-auto max-w-3xl rounded-xl bg-white p-12 text-center shadow-sm">
+                    <h1 className="text-3xl font-semibold text-slate-900">
+                        Order placed successfully
+                    </h1>
+
+                    <p className="mt-3 text-slate-500">
+                        {message} Our pharmacist will review your order shortly.
+                    </p>
+
+                    <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
+                        <Link
+                            to="/medicine-orders"
+                            className="rounded-lg bg-[#0f6b78] px-6 py-3 font-medium text-white hover:bg-[#09545f]"
+                        >
+                            View My Orders
+                        </Link>
+
+                        <Link
+                            to="/medicines"
+                            className="rounded-lg border border-slate-300 px-6 py-3 font-medium text-slate-700 hover:bg-slate-50"
+                        >
+                            Continue Shopping
+                        </Link>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     if (cartItems.length === 0) {
         return null;
@@ -165,12 +197,6 @@ const MedicineCheckout = () => {
                 {error && (
                     <div className="mb-6 rounded-lg bg-red-50 p-4 text-red-700">
                         {error}
-                    </div>
-                )}
-
-                {message && (
-                    <div className="mb-6 rounded-lg bg-green-50 p-4 text-green-700">
-                        {message}
                     </div>
                 )}
 
@@ -232,46 +258,45 @@ const MedicineCheckout = () => {
                                 />
                             </div>
 
-                            <div className="rounded-xl bg-white p-6 shadow-sm">
+                            {prescriptionRequired && (
+                                <div className="rounded-xl bg-white p-6 shadow-sm">
+                                    <div>
+                                        <h2 className="text-xl font-semibold text-slate-900">
+                                            Doctor Prescription
+                                        </h2>
 
-                                <div>
-                                    <h2 className="text-xl font-semibold text-slate-900">
-                                        Doctor Prescription
-                                    </h2>
+                                        <p className="mt-2 text-sm text-slate-500">
+                                            A doctor prescription PDF is required before placing this order for:{" "}
+                                            {prescriptionMedicines.map((item) => item.name).join(", ")}.
+                                        </p>
+                                    </div>
 
-                                    <p className="mt-2 text-sm text-slate-500">
-                                        {prescriptionRequired
-                                            ? "A prescription PDF is required for one or more medicines in your cart."
-                                            : "Prescription is optional for the medicines in your cart."}
-                                    </p>
+                                    <div className="mt-6">
+                                        <label className="block text-sm font-medium text-slate-700">
+                                            Prescription PDF
+                                        </label>
+
+                                        <input
+                                            type="file"
+                                            accept="application/pdf,.pdf"
+                                            required
+                                            onChange={handleFileChange}
+                                            className="mt-2 block w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm text-slate-600"
+                                        />
+
+                                        <p className="mt-2 text-xs text-slate-500">
+                                            PDF only, maximum 5 MB.
+                                        </p>
+
+                                        {prescriptionFile && (
+                                            <div className="mt-4 rounded-lg bg-green-50 px-4 py-3 text-sm text-green-700">
+                                                Selected:{" "}
+                                                {prescriptionFile.name}
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
-
-                                <div className="mt-6">
-
-                                    <label className="block text-sm font-medium text-slate-700">
-                                        Prescription PDF
-                                    </label>
-
-                                    <input
-                                        type="file"
-                                        accept="application/pdf,.pdf"
-                                        onChange={handleFileChange}
-                                        className="mt-2 block w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm text-slate-600"
-                                    />
-
-                                    <p className="mt-2 text-xs text-slate-500">
-                                        PDF only, maximum 5 MB.
-                                    </p>
-
-                                    {prescriptionFile && (
-                                        <div className="mt-4 rounded-lg bg-green-50 px-4 py-3 text-sm text-green-700">
-                                            Selected:{" "}
-                                            {prescriptionFile.name}
-                                        </div>
-                                    )}
-
-                                </div>
-                            </div>
+                            )}
 
                         </div>
 
@@ -292,6 +317,12 @@ const MedicineCheckout = () => {
                                             <p className="font-medium text-slate-800">
                                                 {item.name}
                                             </p>
+
+                                            {item.requiresPrescription && (
+                                                <p className="mt-1 text-xs font-semibold text-amber-700">
+                                                    Prescription required
+                                                </p>
+                                            )}
 
                                             <p className="mt-1 text-sm text-slate-500">
                                                 ₹{item.sellingPrice} ×{" "}

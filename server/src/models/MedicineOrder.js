@@ -36,6 +36,11 @@ const medicineOrderSchema = new mongoose.Schema({
             min: 0
         },
 
+        prescriptionRequired: {
+            type: Boolean,
+            default: false
+        },
+
         prescription: {
             fileUrl: {
                 type: String,

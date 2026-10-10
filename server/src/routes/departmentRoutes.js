@@ -13,7 +13,7 @@ const router = express.Router();
 
 router.get('/', getDepartments);
 
-router.get('/slug/:slug', authMiddleware, authRoles('admin'), getDepartmentBySlug);
+router.get('/slug/:slug', getDepartmentBySlug);
 
 router.get("/admin/all", authMiddleware, authRoles("admin"), getAllDepartmentsAdmin);
 
