@@ -67,6 +67,10 @@ const Medicines = () => {
         return <div className="flex min-h-[60vh] items-center justify-center"><p className="text-slate-500">Loading medicines...</p></div>;
     }
 
+
+
+
+
     return (
         <div className="min-h-screen bg-slate-50">
             <section className="mx-auto max-w-7xl px-6 py-16 lg:px-10">
@@ -127,7 +131,7 @@ const Medicines = () => {
                                     </Link>
 
                                     <div className="px-6 pb-6">
-                                        <div className="mt-5 grid grid-cols-2 gap-3">
+                                        <div className="mt-5 flex flex-col gap-2">
                                             <Link to={`/medicines/${medicine._id}`} className="rounded-lg border border-slate-300 px-4 py-3 text-center font-medium text-slate-700 transition hover:bg-slate-50">
                                                 View Details
                                             </Link>
