@@ -170,7 +170,7 @@ const MedicineCart = () => {
 
                         <Link
                             to="/medicine-checkout"
-                            className="mt-6 block w-full rounded-lg bg-[#0f6b78] px-4 py-3 text-center font-medium text-white hover:bg-[#09545f]"
+                            className="mt-6 block w-full rounded-lg bg-[#0f6b78] px-4 py-3 text-center font-medium !text-white hover:bg-[#09545f]"
                         >
                             Proceed to Checkout
                         </Link>
