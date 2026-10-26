@@ -15,6 +15,10 @@ const MedicineCheckout = () => {
 
     const [shippingAddress, setShippingAddress] = useState("");
     const [prescriptionFile, setPrescriptionFile] = useState(null);
+    const [doctors, setDoctors] = useState([]);
+    const [loadingDoctors, setLoadingDoctors] = useState(true);
+    const [department, setDepartment] = useState("");
+    const [doctorId, setDoctorId] = useState("");
     const [error, setError] = useState("");
     const [message, setMessage] = useState("");
     const [placingOrder, setPlacingOrder] = useState(false);
@@ -25,6 +29,45 @@ const MedicineCheckout = () => {
     );
 
     const prescriptionRequired = prescriptionMedicines.length > 0;
+
+    const departments = [...new Set(doctors.map((doctor) => doctor.department).filter(Boolean))].sort();
+    const departmentDoctors = doctors.filter((doctor) => doctor.department === department);
+
+    useEffect(() => {
+        const loadDoctors = async () => {
+            try {
+                const response = await api.get("/doctors/public");
+                const hospitalDoctors = response.data.doctors || [];
+                setDoctors(hospitalDoctors);
+
+                try {
+                    const appointmentResponse = await api.get("/appointments/mine");
+
+                    const lastConsultation = (appointmentResponse.data.appointments || [])
+                        .filter((appointment) => appointment.status === "completed" && appointment.doctor)
+                        .sort((first, second) => second.date.localeCompare(first.date))[0];
+
+                    const lastDoctor = hospitalDoctors.find((doctor) => doctor._id === lastConsultation?.doctor._id);
+
+                    if (lastDoctor) {
+                        setDepartment(lastDoctor.department);
+                        setDoctorId(lastDoctor._id);
+                    }
+                } catch {
+                    setDoctorId("");
+                }
+            } catch (error) {
+                setError(
+                    error.response?.data?.message ||
+                    "Unable to load hospital doctors."
+                );
+            } finally {
+                setLoadingDoctors(false);
+            }
+        };
+
+        loadDoctors();
+    }, []);
 
     useEffect(() => {
         if (cartItems.length === 0 && !orderPlaced) {
@@ -76,6 +119,16 @@ const MedicineCheckout = () => {
             return;
         }
 
+        if (!department) {
+            setError("Please select the department of the doctor you consulted.");
+            return;
+        }
+
+        if (!doctorId) {
+            setError("Please select the doctor you consulted.");
+            return;
+        }
+
         if (prescriptionRequired && !prescriptionFile) {
             setError(
                 "A doctor prescription PDF is required for the medicines in your cart."
@@ -106,6 +159,16 @@ const MedicineCheckout = () => {
             formData.append(
                 "paymentMethod",
                 "cod"
+            );
+
+            formData.append(
+                "department",
+                department
+            );
+
+            formData.append(
+                "doctorId",
+                doctorId
             );
 
             if (prescriptionFile) {
@@ -243,6 +306,78 @@ const MedicineCheckout = () => {
 
                             <div className="rounded-xl bg-white p-6 shadow-sm">
                                 <h2 className="text-xl font-semibold text-slate-900">
+                                    Consulting Doctor
+                                </h2>
+
+                                <p className="mt-2 text-sm text-slate-500">
+                                    Medicines can only be ordered after consulting a doctor of this hospital.
+                                    Your doctor will be informed about this order.
+                                </p>
+
+                                <div className="mt-6 grid gap-5 sm:grid-cols-2">
+
+                                    <div>
+                                        <label className="text-sm font-medium text-slate-700">
+                                            Department
+                                        </label>
+
+                                        <select
+                                            value={department}
+                                            onChange={(event) => {
+                                                setDepartment(event.target.value);
+                                                setDoctorId("");
+                                            }}
+                                            disabled={loadingDoctors || departments.length === 0}
+                                            className="mt-2 w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-slate-700 outline-none focus:border-[#0f6b78]"
+                                            required
+                                        >
+                                            <option value="">
+                                                {loadingDoctors ? "Loading departments..." : "Select department"}
+                                            </option>
+
+                                            {departments.map((item) => (
+                                                <option value={item} key={item}>
+                                                    {item}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+
+                                    <div>
+                                        <label className="text-sm font-medium text-slate-700">
+                                            Doctor
+                                        </label>
+
+                                        <select
+                                            value={doctorId}
+                                            onChange={(event) => setDoctorId(event.target.value)}
+                                            disabled={!department}
+                                            className="mt-2 w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-slate-700 outline-none focus:border-[#0f6b78]"
+                                            required
+                                        >
+                                            <option value="">
+                                                Select doctor
+                                            </option>
+
+                                            {departmentDoctors.map((doctor) => (
+                                                <option value={doctor._id} key={doctor._id}>
+                                                    {doctor.name} - {doctor.specialization}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+
+                                </div>
+
+                                {!loadingDoctors && departments.length === 0 && (
+                                    <p className="mt-4 text-sm text-red-600">
+                                        No hospital doctors are available right now, so medicines cannot be ordered.
+                                    </p>
+                                )}
+                            </div>
+
+                            <div className="rounded-xl bg-white p-6 shadow-sm">
+                                <h2 className="text-xl font-semibold text-slate-900">
                                     Delivery Address
                                 </h2>
 
@@ -372,7 +507,7 @@ const MedicineCheckout = () => {
 
                             <button
                                 type="submit"
-                                disabled={placingOrder}
+                                disabled={placingOrder || loadingDoctors}
                                 className="mt-6 w-full rounded-lg bg-[#0f6b78] px-4 py-3 font-medium text-white transition hover:bg-[#09545f] disabled:cursor-not-allowed disabled:bg-slate-400"
                             >
                                 {placingOrder

@@ -2,6 +2,8 @@
 
 import Appointment from "../models/Appointment.js";
 import Doctor from "../models/Doctor.js";
+import mongoose from "mongoose";
+import { bookingWindowDays, getScheduleForDate, isConsultationOver, isInsideBookingWindow } from "../utils/availability.js";
 
 
 
@@ -10,20 +12,23 @@ export const createAppointment = async(req, res)=> {
 
     try {
 
-        const {doctorId, date, time, reason} = req.body;
+        const {doctorId, date, reason} = req.body;
 
-        if(!doctorId || !date || !time) {
+        if(!doctorId || !date) {
             return res.status(400).json({
-                message: 'Doctor, date and time are required'
+                message: 'Doctor and date are required'
             });
         }
 
-        const today = new Date();
-        const todayDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+        if(!mongoose.isValidObjectId(doctorId)) {
+            return res.status(404).json({
+                message: 'Doctor not found or unavailable'
+            });
+        }
 
-        if(date < todayDate) {
+        if(!isInsideBookingWindow(date)) {
             return res.status(400).json({
-                message: 'Appointment date cannot be in the past'
+                message: `Appointments can only be booked for the next ${bookingWindowDays} days`
             });
         }
 
@@ -34,16 +39,42 @@ export const createAppointment = async(req, res)=> {
             })
         }
 
-        const existingAppointment = await Appointment.findOne({
+        const scheduleDay = getScheduleForDate(doctor, date);
+
+        if(!scheduleDay) {
+            return res.status(400).json({
+                message: 'The doctor is not available on the selected date'
+            });
+        }
+
+        if(isConsultationOver(date, scheduleDay.endTime)) {
+            return res.status(400).json({
+                message: 'Consultation hours for today are over'
+            });
+        }
+
+        const patientAppointment = await Appointment.findOne({
+            patient: req.user.id,
             doctor: doctor._id,
             date,
-            time,
             status: {$ne: 'cancelled'}
         });
 
-        if(existingAppointment) {
+        if(patientAppointment) {
             return res.status(400).json({
-                message: 'This time slot is already booked for the selected doctor'
+                message: 'You already have an appointment with this doctor on the selected date'
+            });
+        }
+
+        const bookedCount = await Appointment.countDocuments({
+            doctor: doctor._id,
+            date,
+            status: {$ne: 'cancelled'}
+        });
+
+        if(bookedCount >= scheduleDay.limit) {
+            return res.status(400).json({
+                message: 'No appointment slots are left for the selected date'
             });
         }
 
@@ -52,13 +83,29 @@ export const createAppointment = async(req, res)=> {
             doctor: doctor._id,
             department: doctor.department,
             date,
-            time,
+            time: scheduleDay.startTime,
             reason
         });
 
+        const position = await Appointment.countDocuments({
+            doctor: doctor._id,
+            date,
+            status: {$ne: 'cancelled'},
+            _id: {$lte: appointment._id}
+        });
+
+        if(position > scheduleDay.limit) {
+            await Appointment.findByIdAndDelete(appointment._id);
+
+            return res.status(400).json({
+                message: 'No appointment slots are left for the selected date'
+            });
+        }
+
         res.status(201).json({
             message: 'Appointment requested successfully',
-            appointment
+            appointment,
+            remaining: Math.max(scheduleDay.limit - position, 0)
         })
     }
 
@@ -162,6 +209,14 @@ export const updateAppointmentStatus = async(req, res) => {
         if(!allowedStatuses.includes(status)) {
             return res.status(400).json({
                 message: "Invalid appointment status"
+            });
+        }
+
+        const currentAppointment = await Appointment.findById(req.params.id);
+
+        if(currentAppointment && currentAppointment.status === "cancelled" && status !== "cancelled") {
+            return res.status(400).json({
+                message: "Cancelled appointments cannot be reopened"
             });
         }
 

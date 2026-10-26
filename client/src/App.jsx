@@ -37,6 +37,10 @@ import PharmacistOrders from "./pages/pharmacist/Orders";
 import MedicineOrders from "./pages/patient/MedicineOrders";
 import DoctorDashboard from "./pages/doctor/Dashboard";
 import DoctorAppointments from "./pages/doctor/Appointments";
+import DoctorSchedule from "./pages/doctor/Schedule";
+import DoctorPatients from "./pages/doctor/Patients";
+import DoctorMedicineOrders from "./pages/doctor/MedicineOrders";
+import DoctorPatientHistory from "./pages/doctor/PatientHistory";
 import DoctorMedicalRecords from "./pages/doctor/MedicalRecords";
 import DoctorLayout from "./layouts/DoctorLayout";
 
@@ -77,6 +81,10 @@ const App = () => (
                 
                 <Route path="/doctor" element={<ProtectedRoute allowedRoles={["doctor"]}><DoctorLayout><DoctorDashboard /></DoctorLayout></ProtectedRoute>} />
                 <Route path="/doctor/appointments" element={<ProtectedRoute allowedRoles={["doctor"]}><DoctorLayout><DoctorAppointments /></DoctorLayout></ProtectedRoute>} />
+                <Route path="/doctor/schedule" element={<ProtectedRoute allowedRoles={["doctor"]}><DoctorLayout><DoctorSchedule /></DoctorLayout></ProtectedRoute>} />
+                <Route path="/doctor/medicine-orders" element={<ProtectedRoute allowedRoles={["doctor"]}><DoctorLayout><DoctorMedicineOrders /></DoctorLayout></ProtectedRoute>} />
+                <Route path="/doctor/patients" element={<ProtectedRoute allowedRoles={["doctor"]}><DoctorLayout><DoctorPatients /></DoctorLayout></ProtectedRoute>} />
+                <Route path="/doctor/patients/:patientId" element={<ProtectedRoute allowedRoles={["doctor"]}><DoctorLayout><DoctorPatientHistory /></DoctorLayout></ProtectedRoute>} />
                 <Route path="/doctor/medical-records" element={<ProtectedRoute allowedRoles={["doctor"]}><DoctorLayout><DoctorMedicalRecords /></DoctorLayout></ProtectedRoute>} />
 
                 <Route path="/pharmacist/orders"element={<ProtectedRoute allowedRoles={["pharmacist"]}><PharmacistLayout><PharmacistOrders /></PharmacistLayout></ProtectedRoute>}/>

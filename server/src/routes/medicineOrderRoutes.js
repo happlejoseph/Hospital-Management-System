@@ -5,7 +5,7 @@ import multer from "multer";
 import path from "path";
 import fs from "fs";
 
-import {createMedicineOrder, getMyMedicineOrders, getAllMedicineOrders, getMedicineOrderPrescription, cancelMyMedicineOrder, updateMedicineOrderStatus, updateMedicinePaymentStatus} from "../controllers/medicineOrderController.js";
+import {createMedicineOrder, getMyMedicineOrders, getAllMedicineOrders, getDoctorMedicineOrders, acknowledgeDoctorMedicineOrder, confirmDoctorMedicineOrder, rejectDoctorMedicineOrder, getMedicineOrderPrescription, cancelMyMedicineOrder, updateMedicineOrderStatus, updateMedicinePaymentStatus} from "../controllers/medicineOrderController.js";
 
 import authMiddleware from "../middleware/authMiddleware.js";
 import { authRoles } from "../middleware/roleMiddleware.js";
@@ -103,7 +103,15 @@ router.get("/my", authMiddleware, authRoles("patient"), getMyMedicineOrders);
 
 router.get("/", authMiddleware, authRoles("admin", "pharmacist"), getAllMedicineOrders);
 
-router.get("/:id/prescription", authMiddleware, authRoles("patient", "admin", "pharmacist"), getMedicineOrderPrescription);
+router.get("/doctor", authMiddleware, authRoles("doctor"), getDoctorMedicineOrders);
+
+router.put("/doctor/:id/acknowledge", authMiddleware, authRoles("doctor"), acknowledgeDoctorMedicineOrder);
+
+router.put("/doctor/:id/confirm", authMiddleware, authRoles("doctor"), confirmDoctorMedicineOrder);
+
+router.put("/doctor/:id/reject", authMiddleware, authRoles("doctor"), rejectDoctorMedicineOrder);
+
+router.get("/:id/prescription", authMiddleware, authRoles("patient", "admin", "pharmacist", "doctor"), getMedicineOrderPrescription);
 
 router.put("/:id/cancel", authMiddleware, authRoles("patient"), cancelMyMedicineOrder);
 

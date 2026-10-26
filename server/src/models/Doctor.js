@@ -60,6 +60,33 @@ const doctorSchema = new mongoose.Schema({
         default: ""
     },
 
+    schedule: [{
+        _id: false,
+
+        day: {
+            type: String,
+            enum: ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"],
+            required: true
+        },
+
+        startTime: {
+            type: String,
+            default: "09:00"
+        },
+
+        endTime: {
+            type: String,
+            default: "17:00"
+        },
+
+        limit: {
+            type: Number,
+            default: 50,
+            min: 1,
+            max: 500
+        }
+    }],
+
     status: {
         type: String,
         enum: ["active", "inactive"],

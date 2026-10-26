@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import api from "../../services/api";
+import { formatTimestamp } from "../../utils/formatDate";
 
 const getToday = () => {
     const now = new Date();
@@ -15,6 +16,7 @@ const getToday = () => {
 const Dashboard = () => {
 
     const [appointments, setAppointments] = useState([]);
+    const [medicineOrders, setMedicineOrders] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const [message, setMessage] = useState("");
@@ -36,9 +38,39 @@ const Dashboard = () => {
         }
     };
 
+    const loadMedicineOrders = async() => {
+
+        try {
+
+            const response = await api.get("/medicine-orders/doctor");
+            setMedicineOrders(response.data.orders || []);
+        }
+
+        catch(error) {
+            setError(error.response?.data?.message || "Unable to load patient medicine orders");
+        }
+    };
+
     useEffect(() => {
         loadAppointments();
+        loadMedicineOrders();
     }, []);
+
+    const acknowledgeOrder = async(id) => {
+        setError("");
+        setMessage("");
+
+        try {
+
+            const response = await api.put(`/medicine-orders/doctor/${id}/acknowledge`);
+            setMessage(response.data.message);
+            await loadMedicineOrders();
+        }
+
+        catch(error) {
+            setError(error.response?.data?.message || "Unable to acknowledge the message");
+        }
+    };
 
     const updateStatus = async(id, status) => {
         setError("");
@@ -62,6 +94,9 @@ const Dashboard = () => {
     const todayAppointments = appointments.filter((appointment) => appointment.date === today && appointment.status !== "cancelled");
     const completedCount = appointments.filter((appointment) => appointment.status === "completed").length;
     const patientCount = new Set(appointments.map((appointment) => appointment.patient?._id).filter(Boolean)).size;
+
+    const newMedicineOrders = medicineOrders.filter((order) => !order.doctorAcknowledged);
+    const recentMedicineOrders = [...newMedicineOrders, ...medicineOrders.filter((order) => order.doctorAcknowledged)].slice(0, 8);
 
     const cards = [
         ["Today's Appointments", todayAppointments.length],
@@ -95,6 +130,40 @@ const Dashboard = () => {
                     </div>
                 ))}
             </div>
+
+            <section className="dashboard-section">
+                <div className="dashboard-section-heading">
+                    <div>
+                        <span className="eyebrow">MESSAGES</span>
+                        <h2>Patient medicine orders {newMedicineOrders.length > 0 && <span className="notice-count">{newMedicineOrders.length} new</span>}</h2>
+                    </div>
+                </div>
+                <div className="notice-list">
+                    {!loading && recentMedicineOrders.length === 0 && <div className="notice-empty">No patient has ordered medicines mentioning you yet.</div>}
+                    {recentMedicineOrders.map((order) => (
+                        <div className={order.doctorAcknowledged ? "notice-item" : "notice-item unread"} key={order._id}>
+                            <div>
+                                <strong>{order.patient?.name || "A patient"} ordered medicines and mentioned you as their consulting doctor</strong>
+                                <span>{order.medicines.map((item) => `${item.medicine?.name || "Medicine"} × ${item.quantity}`).join(", ")}</span>
+                                <span>{formatTimestamp(order.createdAt)} · Order {order.status}</span>
+                            </div>
+                            <div className="notice-actions">
+                                {order.doctorConfirmed ? (
+                                    <span className="notice-done">Confirmed</span>
+                                ) : order.doctorRejected ? (
+                                    <span className="notice-done">Declined</span>
+                                ) : (
+                                    <>
+                                        {!order.doctorAcknowledged && <button className="small-action" onClick={() => acknowledgeOrder(order._id)}>Acknowledge</button>}
+                                        {order.status === "pending" && <Link className="small-action" to="/doctor/medicine-orders">Review & Confirm</Link>}
+                                        {order.status !== "pending" && order.doctorAcknowledged && <span className="notice-done">Acknowledged</span>}
+                                    </>
+                                )}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </section>
 
             <section className="dashboard-section">
                 <div className="dashboard-section-heading">

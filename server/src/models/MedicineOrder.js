@@ -36,6 +36,46 @@ const medicineOrderSchema = new mongoose.Schema({
             min: 0
         },
 
+        doctor: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Doctor"
+        },
+
+        doctorDepartment: {
+            type: String,
+            trim: true,
+            default: ""
+        },
+
+        doctorAcknowledged: {
+            type: Boolean,
+            default: false
+        },
+
+        doctorAcknowledgedAt: {
+            type: Date
+        },
+
+        doctorConfirmed: {
+            type: Boolean,
+            default: false
+        },
+
+        doctorConfirmedAt: {
+            type: Date
+        },
+
+        doctorRejected: {
+            type: Boolean,
+            default: false
+        },
+
+        doctorNote: {
+            type: String,
+            trim: true,
+            default: ""
+        },
+
         prescriptionRequired: {
             type: Boolean,
             default: false
@@ -72,14 +112,7 @@ const medicineOrderSchema = new mongoose.Schema({
 
         status: {
             type: String,
-            enum: [
-                "pending",
-                "confirmed",
-                "processing",
-                "ready",
-                "delivered",
-                "cancelled"
-            ],
+            enum: ["pending", "confirmed", "processing", "ready", "delivered", "cancelled"],
             default: "pending"
         }
     },

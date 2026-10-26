@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import api from "../../services/api";
+import { formatTime } from "../../utils/formatDate";
 
 const DoctorDetail = () => {
     const { id } = useParams();
@@ -34,6 +35,21 @@ const DoctorDetail = () => {
                     <h2>{doctor.specialization}</h2>
                     <p>{doctor.qualification}</p>
                     <p>{doctor.experience} years of professional experience</p>
+                    <div className="doctor-schedule">
+                        <span className="doctor-schedule-title">Consultation days</span>
+                        {doctor.schedule?.length > 0 ? (
+                            <div className="doctor-schedule-days">
+                                {doctor.schedule.map((item) => (
+                                    <div className="doctor-schedule-day" key={item.day}>
+                                        <strong>{item.day.charAt(0).toUpperCase() + item.day.slice(1, 3)}</strong>
+                                        <span>{formatTime(item.startTime)} - {formatTime(item.endTime)}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <span className="doctor-schedule-empty">The doctor has not published consultation days yet.</span>
+                        )}
+                    </div>
                     <Link className="button button-dark" to={`/appointments?doctor=${doctor._id}`}>Book an Appointment</Link>
                 </div>
             </section>

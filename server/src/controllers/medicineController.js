@@ -1,189 +1,266 @@
 
 
+import fs from "fs";
+import path from "path";
 import mongoose from "mongoose";
+import MedicineOrder from "../models/MedicineOrder.js";
+import Doctor from "../models/Doctor.js";
+import Appointment from "../models/Appointment.js";
 import Medicine from "../models/Medicine.js";
 import MedicineTransaction from "../models/MedicineTransaction.js";
-import cloudinary from "../config/cloudinary.js";
 
+const prescriptionDirectory = path.resolve(process.cwd(), "uploads", "prescriptions");
 
+const removeUploadedFile = async (file) => {
 
-
-export const getMedicines = async(req, res) => {
+    if (!file?.path) {
+        return;
+    }
 
     try {
-        
-        const medicines = await Medicine.find().sort({ createdAt: -1 });
+        await fs.promises.unlink(file.path);
+    }
+    catch {
+        return;
+    }
+};
 
-        res.status(200).json({
-            message: "Medicines fetched successfully",
-            medicines
+const populateOrder = (query) => {
+    return query
+        .populate("patient", "name email")
+        .populate("doctor", "name specialization department")
+        .populate("medicines.medicine", "name image sellingPrice requiresPrescription");
+};
+
+const restoreOrderStock = async (order, userId, note) => {
+
+    for (const item of order.medicines) {
+        await Medicine.findByIdAndUpdate(item.medicine, {
+            $inc: {
+                quantity: item.quantity
+            }
         });
     }
-    catch(error) {
-        res.status(500).json({
-            message: error.message
-        });
-    }
+
+    await MedicineTransaction.insertMany(
+        order.medicines.map((item) => ({
+            medicine: item.medicine,
+            type: "return",
+            quantity: item.quantity,
+            sellingPrice: item.price,
+            notes: `${note} ${order._id}`,
+            createdBy: userId
+        }))
+    );
 };
 
 
 
 
-export const getPublicMedicines = async(req, res) => {
+
+export const createMedicineOrder = async (req, res) => {
+
+    const stockUpdates = [];
+
+    const reject = async (statusCode, message) => {
+        await removeUploadedFile(req.file);
+
+        return res.status(statusCode).json({
+            message
+        });
+    };
 
     try {
 
-        const medicines = await Medicine.find({ expiryDate: { $gt: new Date() } })
-            .select("name image description category sellingPrice quantity requiresPrescription expiryDate")
-            .sort({ name: 1 });
+        const { medicines, shippingAddress, paymentMethod, doctorId, department } = req.body;
 
-        res.status(200).json({
-            medicines
+        if (typeof medicines === "undefined") {
+            return reject(400, "Medicines are required");
+        }
+
+        if (typeof shippingAddress !== "string" || !shippingAddress.trim()) {
+            return reject(400, "Shipping address is required");
+        }
+
+        if (paymentMethod !== "cod") {
+            return reject(400, "Only Cash on Delivery is available");
+        }
+
+        if (typeof department !== "string" || !department.trim()) {
+            return reject(400, "Select the department of the doctor you consulted");
+        }
+
+        if (!doctorId || !mongoose.isValidObjectId(doctorId)) {
+            return reject(400, "Select the doctor you consulted");
+        }
+
+        const consultingDoctor = await Doctor.findOne({
+            _id: doctorId,
+            status: "active"
         });
-    }
-    catch(error) {
-        res.status(500).json({
-            message: error.message
-        });
-    }
-};
 
+        if (!consultingDoctor) {
+            return reject(400, "Medicines can only be ordered after consulting a doctor of this hospital");
+        }
 
+        if (consultingDoctor.department.trim().toLowerCase() !== department.trim().toLowerCase()) {
+            return reject(400, "The selected doctor does not belong to the chosen department");
+        }
 
+        let medicineItems;
 
-export const getPublicMedicineById = async(req, res) => {
+        try {
+            medicineItems = typeof medicines === "string" ? JSON.parse(medicines) : medicines;
+        }
+        catch {
+            return reject(400, "Invalid medicines data");
+        }
 
-    try {
+        if (!Array.isArray(medicineItems) || medicineItems.length === 0) {
+            return reject(400, "Medicine cart is empty");
+        }
 
-        const { id } = req.params;
+        let totalAmount = 0;
+        let prescriptionRequired = false;
+        const prescriptionMedicines = [];
+        const orderMedicines = [];
+        const medicineIds = new Set();
 
-        if(!mongoose.isValidObjectId(id)) {
-            return res.status(404).json({
-                message: "Medicine not found"
+        for (const item of medicineItems) {
+
+            if (!item.medicine || !mongoose.isValidObjectId(item.medicine) || !Number.isInteger(Number(item.quantity)) || Number(item.quantity) < 1) {
+                return reject(400, "Invalid medicine quantity");
+            }
+
+            if (medicineIds.has(String(item.medicine))) {
+                return reject(400, "Duplicate medicine in cart");
+            }
+
+            medicineIds.add(String(item.medicine));
+
+            const medicine = await Medicine.findById(item.medicine);
+
+            if (!medicine) {
+                return reject(404, "Medicine not found");
+            }
+
+            if (new Date(medicine.expiryDate) <= new Date()) {
+                return reject(400, `${medicine.name} has expired`);
+            }
+
+            if (medicine.quantity < Number(item.quantity)) {
+                return reject(400, `${medicine.name} does not have enough stock`);
+            }
+
+            if (medicine.requiresPrescription) {
+                prescriptionRequired = true;
+                prescriptionMedicines.push(medicine.name);
+            }
+
+            totalAmount += medicine.sellingPrice * Number(item.quantity);
+
+            orderMedicines.push({
+                medicine: medicine._id,
+                quantity: Number(item.quantity),
+                price: medicine.sellingPrice
             });
         }
 
-        const medicine = await Medicine.findOne({ _id: id, expiryDate: { $gt: new Date() } })
-            .select("name image description category sellingPrice quantity requiresPrescription expiryDate");
-
-        if(!medicine) {
-            return res.status(404).json({
-                message: "Medicine not found"
-            });
+        if (prescriptionRequired && !req.file) {
+            return reject(400, `Prescription is required for ${prescriptionMedicines.join(", ")}`);
         }
 
-        res.status(200).json({
-            medicine
-        });
-    }
-    catch(error) {
-        res.status(500).json({
-            message: error.message
-        });
-    }
-};
+        for (const item of orderMedicines) {
 
-
-
-
-export const createMedicine = async(req, res) => {
-
-    try {
-
-        const { name, description = "", category = "", batchNumber, expiryDate, quantity, supplier, purchasePrice, sellingPrice, requiresPrescription = false, lowStockThreshold } = req.body;
-
-        if(!name?.trim() || !batchNumber?.trim() || !expiryDate || quantity === undefined || !supplier?.trim() || purchasePrice === undefined || sellingPrice === undefined) {
-            return res.status(400).json({
-                message: "All medicine fields are required"
-            });
-        }
-
-        const quantityNumber = Number(quantity);
-        const purchasePriceNumber = Number(purchasePrice);
-        const sellingPriceNumber = Number(sellingPrice);
-        const thresholdNumber = lowStockThreshold === undefined || lowStockThreshold === "" ? 10 : Number(lowStockThreshold);
-        const parsedExpiryDate = new Date(expiryDate);
-
-        if(!Number.isInteger(quantityNumber) || quantityNumber < 0) {
-            return res.status(400).json({
-                message: "Quantity must be a whole number zero or greater"
-            });
-        }
-
-        if(!Number.isFinite(purchasePriceNumber) || purchasePriceNumber < 0 || !Number.isFinite(sellingPriceNumber) || sellingPriceNumber < 0) {
-            return res.status(400).json({
-                message: "Medicine prices must be valid numbers"
-            });
-        }
-
-        if(!Number.isInteger(thresholdNumber) || thresholdNumber < 0) {
-            return res.status(400).json({
-                message: "Low stock threshold must be a whole number zero or greater"
-            });
-        }
-
-        if(Number.isNaN(parsedExpiryDate.getTime()) || parsedExpiryDate <= new Date()) {
-            return res.status(400).json({
-                message: "Expiry date must be a valid future date"
-            });
-        }
-
-        let image = "";
-
-        if (req.file) {
-            const result = await new Promise((resolve, reject) => {
-                cloudinary.uploader.upload_stream(
-                    {
-                        folder: "hospital/medicines",
-                        resource_type: "image"
-                    },
-                    (error, result) => {
-                        if (error) {
-                            reject(error);
-                        } else {
-                            resolve(result);
-                        }
+            const medicine = await Medicine.findOneAndUpdate(
+                {
+                    _id: item.medicine,
+                    quantity: { $gte: item.quantity }
+                },
+                {
+                    $inc: {
+                        quantity: -item.quantity
                     }
-                ).end(req.file.buffer);
-            });
+                },
+                {
+                    new: true
+                }
+            );
 
-            image = result.secure_url;
+            if (!medicine) {
+                throw new Error("One or more medicines are no longer available in the requested quantity");
+            }
+
+            stockUpdates.push({
+                medicine: item.medicine,
+                quantity: item.quantity
+            });
         }
 
-        const medicine = await Medicine.create({
-            name: name.trim(),
-            image,
-            description: String(description).trim(),
-            category: String(category).trim(),
-            batchNumber: batchNumber.trim(),
-            expiryDate: parsedExpiryDate,
-            quantity: quantityNumber,
-            supplier: supplier.trim(),
-            purchasePrice: purchasePriceNumber,
-            sellingPrice: sellingPriceNumber,
-            requiresPrescription: requiresPrescription === true || requiresPrescription === "true",
-            lowStockThreshold: thresholdNumber
+        const prescription = req.file
+            ? {
+                  fileUrl: `/uploads/prescriptions/${req.file.filename}`,
+                  fileName: req.file.originalname
+              }
+            : {
+                  fileUrl: "",
+                  fileName: ""
+              };
+
+        const order = await MedicineOrder.create({
+            patient: req.user.id,
+            medicines: orderMedicines,
+            totalAmount: Math.round(totalAmount * 100) / 100,
+            doctor: consultingDoctor._id,
+            doctorDepartment: consultingDoctor.department,
+            prescriptionRequired,
+            prescription,
+            shippingAddress: shippingAddress.trim(),
+            paymentMethod: "cod",
+            paymentStatus: "pending"
         });
 
-        await MedicineTransaction.create({
-            medicine: medicine._id,
-            type: "purchase",
-            quantity: quantityNumber,
-            supplier: supplier.trim(),
-            purchasePrice: purchasePriceNumber,
-            sellingPrice: sellingPriceNumber,
-            createdBy: req.user.id,
-            notes: "Initial stock"
-        });
+        try {
+            await MedicineTransaction.insertMany(
+                orderMedicines.map((item) => ({
+                    medicine: item.medicine,
+                    type: "dispense",
+                    quantity: item.quantity,
+                    patientName: req.user.name,
+                    sellingPrice: item.price,
+                    notes: `Online order ${order._id}`,
+                    createdBy: req.user.id
+                }))
+            );
+        }
+        catch (transactionError) {
+            console.error("Create order transaction error:", transactionError);
+        }
+
+        const populatedOrder = await populateOrder(MedicineOrder.findById(order._id));
 
         res.status(201).json({
-            message: "Medicine added successfully",
-            medicine
+            message: "Medicine order placed successfully",
+            order: populatedOrder
         });
     }
-    catch(error) {
+
+    catch (error) {
+
+        for (const update of stockUpdates) {
+            await Medicine.findByIdAndUpdate(update.medicine, {
+                $inc: {
+                    quantity: update.quantity
+                }
+            });
+        }
+
+        await removeUploadedFile(req.file);
+
+        console.error("Create medicine order error:", error);
+
         res.status(500).json({
-            message: error.message
+            message: "Unable to place medicine order"
         });
     }
 };
@@ -193,67 +270,125 @@ export const createMedicine = async(req, res) => {
 
 
 
+export const getMyMedicineOrders = async (req, res) => {
 
-export const purchaseMedicine = async(req, res) => {
+    try {
+
+        const orders = await populateOrder(
+            MedicineOrder.find({
+                patient: req.user.id
+            }).sort({ createdAt: -1 })
+        );
+
+        res.json({
+            orders
+        });
+    }
+
+    catch (error) {
+
+        console.error("Get my medicine orders error:", error);
+
+        res.status(500).json({
+            message: "Unable to load medicine orders"
+        });
+    }
+};
+
+
+
+
+
+export const getAllMedicineOrders = async (req, res) => {
+
+    try {
+
+        const orders = await populateOrder(
+            MedicineOrder.find().sort({ createdAt: -1 })
+        );
+
+        res.json({
+            orders
+        });
+    }
+
+    catch (error) {
+
+        console.error("Get medicine orders error:", error);
+
+        res.status(500).json({
+            message: "Unable to load medicine orders"
+        });
+    }
+};
+
+
+
+
+
+export const getMedicineOrderPrescription = async (req, res) => {
 
     try {
 
         const { id } = req.params;
 
-        const { quantity, supplier, purchasePrice } = req.body;
-
-        if(!Number.isInteger(Number(quantity)) || Number(quantity) <= 0) {
-            return res.status(400).json({
-                message: "Quantity must be a whole number greater than zero"
-            });
-        }
-
-        if(purchasePrice !== undefined && purchasePrice !== "" && (!Number.isFinite(Number(purchasePrice)) || Number(purchasePrice) < 0)) {
-            return res.status(400).json({
-                message: "Purchase price must be a valid number"
-            });
-        }
-
-        const medicine = await Medicine.findById(id);
-
-        if(!medicine) {
+        if (!mongoose.isValidObjectId(id)) {
             return res.status(404).json({
-                message: "Medicine not found"
+                message: "Medicine order not found"
             });
         }
 
-        medicine.quantity += Number(quantity);
+        const order = await MedicineOrder.findById(id);
 
-        if(supplier) {
-            medicine.supplier = supplier;
+        if (!order) {
+            return res.status(404).json({
+                message: "Medicine order not found"
+            });
         }
 
-        if(purchasePrice !== undefined && purchasePrice !== "") {
-            medicine.purchasePrice = Number(purchasePrice);
+        if (req.user.role === "patient" && String(order.patient) !== String(req.user.id)) {
+            return res.status(403).json({
+                message: "Access denied"
+            });
         }
 
-        await medicine.save();
+        if (req.user.role === "doctor") {
 
-        await MedicineTransaction.create({
-            medicine: medicine._id,
-            type: "purchase",
-            quantity: Number(quantity),
-            supplier: supplier || medicine.supplier,
-            purchasePrice: medicine.purchasePrice,
-            sellingPrice: medicine.sellingPrice,
-            createdBy: req.user.id
-        });
+            const doctor = await Doctor.findOne({
+                user: req.user.id
+            });
 
-        res.status(200).json({
-            message: "Medicine stock updated successfully",
-            medicine
-        });
+            if (!doctor || String(order.doctor) !== String(doctor._id)) {
+                return res.status(403).json({
+                    message: "Access denied"
+                });
+            }
+        }
+
+        if (!order.prescription?.fileUrl) {
+            return res.status(404).json({
+                message: "No prescription uploaded for this order"
+            });
+        }
+
+        const filePath = path.resolve(process.cwd(), order.prescription.fileUrl.replace(/^\/+/, ""));
+
+        if (!filePath.startsWith(prescriptionDirectory + path.sep) || !fs.existsSync(filePath)) {
+            return res.status(404).json({
+                message: "Prescription file not found"
+            });
+        }
+
+        res.type("application/pdf");
+        res.sendFile(filePath);
     }
 
+    catch (error) {
 
-    catch(error) {
+        console.error("Get prescription error:", error);
+
         res.status(500).json({
-            message: error.message
+            message: "Unable to load prescription"
         });
     }
 };
@@ -263,236 +398,504 @@ export const purchaseMedicine = async(req, res) => {
 
 
 
-export const dispenseMedicine = async(req, res) => {
+export const updateMedicineOrderStatus = async (req, res) => {
 
     try {
 
-        const { id } = req.params;
-        const { quantity, patientName, notes } = req.body;
+        const { status } = req.body;
 
-        if(!Number.isInteger(Number(quantity)) || Number(quantity) <= 0) {
+        const allowedTransitions = {
+            pending: ["confirmed", "cancelled"],
+            confirmed: ["processing", "cancelled"],
+            processing: ["ready", "cancelled"],
+            ready: ["delivered"],
+            delivered: [],
+            cancelled: []
+        };
+
+        if (!Object.keys(allowedTransitions).includes(status)) {
             return res.status(400).json({
-                message: "Quantity must be a whole number greater than zero"
+                message: "Invalid order status"
             });
         }
 
-        if(!patientName) {
-            return res.status(400).json({
-                message: "Patient name is required"
+        if (!mongoose.isValidObjectId(req.params.id)) {
+            return res.status(404).json({
+                message: "Medicine order not found"
             });
         }
 
-        const medicine = await Medicine.findOneAndUpdate(
+        const order = await MedicineOrder.findById(req.params.id);
+
+        if (!order) {
+            return res.status(404).json({
+                message: "Medicine order not found"
+            });
+        }
+
+        if (!allowedTransitions[order.status].includes(status)) {
+            return res.status(400).json({
+                message: `Order cannot be changed from ${order.status} to ${status}`
+            });
+        }
+
+        if (status === "confirmed" && order.doctor && !order.doctorConfirmed) {
+            return res.status(400).json({
+                message: "The consulting doctor must confirm this order before it can be confirmed"
+            });
+        }
+
+        const updatedOrder = await MedicineOrder.findOneAndUpdate(
             {
-                _id: id,
-                quantity: { $gte: Number(quantity) },
-                expiryDate: { $gt: new Date() }
+                _id: order._id,
+                status: order.status
             },
             {
-                $inc: { quantity: -Number(quantity) }
+                status
             },
             {
                 new: true
             }
         );
 
-        if(!medicine) {
-            const existingMedicine = await Medicine.findById(id);
+        if (!updatedOrder) {
+            return res.status(409).json({
+                message: "Order was updated by someone else. Please refresh and try again"
+            });
+        }
 
-            if(!existingMedicine) {
-                return res.status(404).json({
-                    message: "Medicine not found"
-                });
-            }
+        if (status === "cancelled") {
+            await restoreOrderStock(updatedOrder, req.user.id, "Cancelled order");
+        }
 
-            if(new Date(existingMedicine.expiryDate) <= new Date()) {
-                return res.status(400).json({
-                    message: "Medicine has expired"
-                });
-            }
+        const populatedOrder = await populateOrder(MedicineOrder.findById(updatedOrder._id));
 
+        res.json({
+            message: "Medicine order status updated",
+            order: populatedOrder
+        });
+    }
+
+    catch (error) {
+
+        console.error("Update medicine order error:", error);
+
+        res.status(500).json({
+            message: "Unable to update medicine order"
+        });
+    }
+};
+
+
+
+
+
+export const cancelMyMedicineOrder = async (req, res) => {
+
+    try {
+
+        if (!mongoose.isValidObjectId(req.params.id)) {
+            return res.status(404).json({
+                message: "Medicine order not found"
+            });
+        }
+
+        const order = await MedicineOrder.findOne({
+            _id: req.params.id,
+            patient: req.user.id
+        });
+
+        if (!order) {
+            return res.status(404).json({
+                message: "Medicine order not found"
+            });
+        }
+
+        if (order.status !== "pending") {
             return res.status(400).json({
-                message: "Not enough medicine stock"
+                message: "Only pending orders can be cancelled"
             });
         }
 
-        await MedicineTransaction.create({
-            medicine: medicine._id,
-            type: "dispense",
-            quantity: Number(quantity),
-            patientName,
-            sellingPrice: medicine.sellingPrice,
-            createdBy: req.user.id,
-            notes
-        });
-
-        res.status(200).json({
-            message: "Medicine dispensed successfully",
-            medicine
-        });
-    }
-
-    catch(error) {
-        res.status(500).json({
-            message: error.message
-        });
-    }
-};
-
-
-
-
-
-export const getInventoryReport = async(req, res) => {
-
-    try {
-
-        const medicines = await Medicine.find().sort({ quantity: 1, name: 1 });
-        const transactions = await MedicineTransaction.find()
-            .populate("medicine", "name batchNumber")
-            .populate("createdBy", "name role")
-            .sort({ createdAt: -1 })
-            .limit(100);
-
-        const lowStock = medicines.filter((medicine) => medicine.quantity <= medicine.lowStockThreshold);
-        
-        const expired = medicines.filter((medicine) => new Date(medicine.expiryDate) < new Date());
-
-        res.status(200).json({
-            message: "Inventory report fetched successfully",
-
-            summary: {
-                totalMedicines: medicines.length,
-                totalUnits: medicines.reduce((total, medicine) => total + medicine.quantity, 0),
-                lowStockCount: lowStock.length,
-                expiredCount: expired.length
+        const cancelledOrder = await MedicineOrder.findOneAndUpdate(
+            {
+                _id: order._id,
+                status: "pending"
             },
-            medicines,
-            lowStock,
-            expired,
-            transactions
+            {
+                status: "cancelled"
+            },
+            {
+                new: true
+            }
+        );
+
+        if (!cancelledOrder) {
+            return res.status(409).json({
+                message: "Order has already been processed and can no longer be cancelled"
+            });
+        }
+
+        await restoreOrderStock(cancelledOrder, req.user.id, "Cancelled by patient");
+
+        const populatedOrder = await populateOrder(MedicineOrder.findById(cancelledOrder._id));
+
+        res.json({
+            message: "Medicine order cancelled",
+            order: populatedOrder
         });
     }
 
-    catch(error) {
+    catch (error) {
+
+        console.error("Cancel medicine order error:", error);
+
         res.status(500).json({
-            message: error.message
+            message: "Unable to cancel medicine order"
         });
     }
 };
 
 
-export const deleteMedicine = async(req, res) => {
+
+
+
+export const updateMedicinePaymentStatus = async (req, res) => {
 
     try {
 
-        const medicine = await Medicine.findByIdAndDelete(req.params.id);
+        const { paymentStatus } = req.body;
 
-        if(!medicine) {
-            return res.status(404).json({
-                message: "Medicine not found"
+        if (!["pending", "paid"].includes(paymentStatus)) {
+            return res.status(400).json({
+                message: "Invalid payment status"
             });
         }
 
-        res.status(200).json({
-            message: "Medicine deleted successfully"
+        if (!mongoose.isValidObjectId(req.params.id)) {
+            return res.status(404).json({
+                message: "Medicine order not found"
+            });
+        }
+
+        const order = await MedicineOrder.findById(req.params.id);
+
+        if (!order) {
+            return res.status(404).json({
+                message: "Medicine order not found"
+            });
+        }
+
+        if (paymentStatus === "paid" && order.status !== "delivered") {
+            return res.status(400).json({
+                message: "Cash can be marked as paid after the order is delivered"
+            });
+        }
+
+        order.paymentStatus = paymentStatus;
+        await order.save();
+
+        res.json({
+            message: "Payment status updated",
+            order
         });
     }
 
-    catch(error) {
+    catch (error) {
+
+        console.error("Update medicine payment error:", error);
+
         res.status(500).json({
-            message: error.message
+            message: "Unable to update payment status"
         });
     }
 };
 
 
-export const updateMedicine = async(req, res) => {
+export const getDoctorMedicineOrders = async (req, res) => {
 
     try {
 
-        const { id } = req.params;
-        const { name, description, category, expiryDate, sellingPrice, requiresPrescription, lowStockThreshold } = req.body;
+        const doctor = await Doctor.findOne({
+            user: req.user.id
+        });
 
-        if(!mongoose.isValidObjectId(id)) {
+        if (!doctor) {
             return res.status(404).json({
-                message: "Medicine not found"
+                message: "Doctor profile not found"
             });
         }
 
-        const medicine = await Medicine.findById(id);
+        const [orders, consultedPatients] = await Promise.all([
+            populateOrder(
+                MedicineOrder.find({
+                    doctor: doctor._id
+                }).sort({ createdAt: -1 })
+            ),
+            Appointment.distinct("patient", {
+                doctor: doctor._id,
+                status: "completed"
+            })
+        ]);
 
-        if(!medicine) {
-            return res.status(404).json({
-                message: "Medicine not found"
-            });
-        }
+        const consultedIds = new Set(consultedPatients.map((patientId) => String(patientId)));
 
-        if(name !== undefined) {
-            if(!String(name).trim()) {
-                return res.status(400).json({
-                    message: "Medicine name is required"
-                });
-            }
+        const doctorOrders = orders.map((order) => ({
+            ...order.toObject(),
+            patientConsulted: consultedIds.has(String(order.patient?._id))
+        }));
 
-            medicine.name = String(name).trim();
-        }
-
-        if(description !== undefined) {
-            medicine.description = String(description).trim();
-        }
-
-        if(category !== undefined) {
-            medicine.category = String(category).trim();
-        }
-
-        if(expiryDate !== undefined) {
-            const parsedExpiryDate = new Date(expiryDate);
-
-            if(Number.isNaN(parsedExpiryDate.getTime()) || parsedExpiryDate <= new Date()) {
-                return res.status(400).json({
-                    message: "Expiry date must be a valid future date"
-                });
-            }
-
-            medicine.expiryDate = parsedExpiryDate;
-        }
-
-        if(sellingPrice !== undefined) {
-            if(!Number.isFinite(Number(sellingPrice)) || Number(sellingPrice) < 0) {
-                return res.status(400).json({
-                    message: "Selling price must be a valid number"
-                });
-            }
-
-            medicine.sellingPrice = Number(sellingPrice);
-        }
-
-        if(lowStockThreshold !== undefined) {
-            if(!Number.isInteger(Number(lowStockThreshold)) || Number(lowStockThreshold) < 0) {
-                return res.status(400).json({
-                    message: "Low stock threshold must be a whole number zero or greater"
-                });
-            }
-
-            medicine.lowStockThreshold = Number(lowStockThreshold);
-        }
-
-        if(requiresPrescription !== undefined) {
-            medicine.requiresPrescription = requiresPrescription === true || requiresPrescription === "true";
-        }
-
-        await medicine.save();
-
-        res.status(200).json({
-            message: "Medicine updated successfully",
-            medicine
+        res.json({
+            orders: doctorOrders,
+            unacknowledged: doctorOrders.filter((order) => !order.doctorAcknowledged).length
         });
     }
 
-    catch(error) {
+    catch (error) {
+
+        console.error("Get doctor medicine orders error:", error);
+
         res.status(500).json({
-            message: error.message
+            message: "Unable to load patient medicine orders"
+        });
+    }
+};
+
+
+export const acknowledgeDoctorMedicineOrder = async (req, res) => {
+
+    try {
+
+        if (!mongoose.isValidObjectId(req.params.id)) {
+            return res.status(404).json({
+                message: "Medicine order not found"
+            });
+        }
+
+        const doctor = await Doctor.findOne({
+            user: req.user.id
+        });
+
+        if (!doctor) {
+            return res.status(404).json({
+                message: "Doctor profile not found"
+            });
+        }
+
+        const order = await MedicineOrder.findOne({
+            _id: req.params.id,
+            doctor: doctor._id
+        });
+
+        if (!order) {
+            return res.status(404).json({
+                message: "Medicine order not found"
+            });
+        }
+
+        if (!order.doctorAcknowledged) {
+            order.doctorAcknowledged = true;
+            order.doctorAcknowledgedAt = new Date();
+            await order.save();
+        }
+
+        const populatedOrder = await populateOrder(MedicineOrder.findById(order._id));
+
+        res.json({
+            message: "Message acknowledged",
+            order: populatedOrder
+        });
+    }
+
+    catch (error) {
+
+        console.error("Acknowledge medicine order error:", error);
+
+        res.status(500).json({
+            message: "Unable to acknowledge the message"
+        });
+    }
+};
+
+
+export const confirmDoctorMedicineOrder = async (req, res) => {
+
+    try {
+
+        if (!mongoose.isValidObjectId(req.params.id)) {
+            return res.status(404).json({
+                message: "Medicine order not found"
+            });
+        }
+
+        const doctor = await Doctor.findOne({
+            user: req.user.id
+        });
+
+        if (!doctor) {
+            return res.status(404).json({
+                message: "Doctor profile not found"
+            });
+        }
+
+        const order = await MedicineOrder.findOne({
+            _id: req.params.id,
+            doctor: doctor._id
+        });
+
+        if (!order) {
+            return res.status(404).json({
+                message: "Medicine order not found"
+            });
+        }
+
+        if (order.doctorConfirmed) {
+            return res.status(400).json({
+                message: "You have already confirmed this order"
+            });
+        }
+
+        if (order.status !== "pending") {
+            return res.status(400).json({
+                message: order.status === "cancelled" ? "This order has been cancelled" : "This order has already been processed"
+            });
+        }
+
+        const note = typeof req.body.note === "string" ? req.body.note.trim() : "";
+
+        if (note.length > 500) {
+            return res.status(400).json({
+                message: "Suggestion must be 500 characters or less"
+            });
+        }
+
+        order.doctorConfirmed = true;
+        order.doctorConfirmedAt = new Date();
+        order.doctorNote = note;
+
+        if (!order.doctorAcknowledged) {
+            order.doctorAcknowledged = true;
+            order.doctorAcknowledgedAt = new Date();
+        }
+
+        await order.save();
+
+        const populatedOrder = await populateOrder(MedicineOrder.findById(order._id));
+
+        res.json({
+            message: "Order confirmed and sent to the pharmacist",
+            order: populatedOrder
+        });
+    }
+
+    catch (error) {
+
+        console.error("Confirm medicine order error:", error);
+
+        res.status(500).json({
+            message: "Unable to confirm the order"
+        });
+    }
+};
+
+
+export const rejectDoctorMedicineOrder = async (req, res) => {
+
+    try {
+
+        if (!mongoose.isValidObjectId(req.params.id)) {
+            return res.status(404).json({
+                message: "Medicine order not found"
+            });
+        }
+
+        const doctor = await Doctor.findOne({
+            user: req.user.id
+        });
+
+        if (!doctor) {
+            return res.status(404).json({
+                message: "Doctor profile not found"
+            });
+        }
+
+        const order = await MedicineOrder.findOne({
+            _id: req.params.id,
+            doctor: doctor._id
+        });
+
+        if (!order) {
+            return res.status(404).json({
+                message: "Medicine order not found"
+            });
+        }
+
+        if (order.doctorConfirmed) {
+            return res.status(400).json({
+                message: "You have already confirmed this order"
+            });
+        }
+
+        if (order.status !== "pending") {
+            return res.status(400).json({
+                message: order.status === "cancelled" ? "This order has already been cancelled" : "This order has already been processed"
+            });
+        }
+
+        const reason = typeof req.body.reason === "string" ? req.body.reason.trim() : "";
+
+        if (!reason) {
+            return res.status(400).json({
+                message: "Enter a reason for declining this order"
+            });
+        }
+
+        if (reason.length > 500) {
+            return res.status(400).json({
+                message: "Reason must be 500 characters or less"
+            });
+        }
+
+        const declinedOrder = await MedicineOrder.findOneAndUpdate(
+            {
+                _id: order._id,
+                status: "pending",
+                doctorConfirmed: false
+            },
+            {
+                status: "cancelled",
+                doctorRejected: true,
+                doctorNote: reason,
+                doctorAcknowledged: true,
+                doctorAcknowledgedAt: new Date()
+            },
+            {
+                new: true
+            }
+        );
+
+        if (!declinedOrder) {
+            return res.status(409).json({
+                message: "Order was updated by someone else. Please refresh and try again"
+            });
+        }
+
+        await restoreOrderStock(declinedOrder, req.user.id, "Declined by doctor");
+
+        const populatedOrder = await populateOrder(MedicineOrder.findById(declinedOrder._id));
+
+        res.json({
+            message: "Order declined and the patient has been informed",
+            order: populatedOrder
+        });
+    }
+
+    catch (error) {
+
+        console.error("Reject medicine order error:", error);
+
+        res.status(500).json({
+            message: "Unable to decline the order"
         });
     }
 };

@@ -197,6 +197,26 @@ const MedicineOrders = () => {
                                         </p>
                                     </div>
 
+                                    {order.doctor && (
+                                        <div className="sm:col-span-2">
+                                            <p className="font-medium text-slate-700">
+                                                Consulting Doctor
+                                            </p>
+                                            <p className="mt-1">
+                                                {order.doctor.name} - {order.doctorDepartment || order.doctor.department}
+                                            </p>
+                                            <p className="mt-1 text-xs text-slate-500">
+                                                {order.doctorRejected ? "Order declined by the doctor" : order.status === "cancelled" ? "Order cancelled" : order.doctorConfirmed ? "Doctor has confirmed this order" : "Waiting for doctor confirmation"}
+                                            </p>
+                                            {order.doctorNote && (
+                                                <p className="mt-3 rounded-lg bg-amber-50 p-4 text-sm leading-6 text-amber-800">
+                                                    <span className="font-semibold">{order.doctorRejected ? "Reason for declining: " : "Doctor's suggestion: "}</span>
+                                                    {order.doctorNote}
+                                                </p>
+                                            )}
+                                        </div>
+                                    )}
+
                                     {order.prescription?.fileUrl && (
                                         <div className="sm:col-span-2">
                                             <p className="font-medium text-slate-700">

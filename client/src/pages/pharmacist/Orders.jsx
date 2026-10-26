@@ -28,6 +28,8 @@ const Orders = () => {
         loadOrders();
     }, []);
 
+    const [tab, setTab] = useState("all");
+
     const updateStatus = async (orderId, status) => {
         try {
             await api.put(
@@ -72,6 +74,10 @@ const Orders = () => {
         }
     };
 
+    const waitingOrders = orders.filter((order) => order.status === "pending" && order.doctor && !order.doctorConfirmed);
+    const readyOrders = orders.filter((order) => order.status === "pending" && (!order.doctor || order.doctorConfirmed));
+    const visibleOrders = tab === "waiting" ? waitingOrders : tab === "ready" ? readyOrders : orders;
+
     if (loading) {
         return (
             <div className="flex min-h-[60vh] items-center justify-center">
@@ -107,6 +113,14 @@ const Orders = () => {
                 </div>
             )}
 
+            {orders.length > 0 && (
+                <div className="tab-row">
+                    <button type="button" className={tab === "all" ? "tab-button active" : "tab-button"} onClick={() => setTab("all")}>All orders ({orders.length})</button>
+                    <button type="button" className={tab === "ready" ? "tab-button active" : "tab-button"} onClick={() => setTab("ready")}>Ready to confirm ({readyOrders.length})</button>
+                    <button type="button" className={tab === "waiting" ? "tab-button active" : "tab-button"} onClick={() => setTab("waiting")}>Waiting for doctor ({waitingOrders.length})</button>
+                </div>
+            )}
+
             {orders.length === 0 ? (
                 <div className="rounded-xl bg-white p-10 text-center shadow-sm">
                     <h2 className="text-xl font-semibold text-slate-800">
@@ -119,7 +133,13 @@ const Orders = () => {
                 </div>
             ) : (
                 <div className="space-y-6">
-                    {orders.map((order) => (
+                    {visibleOrders.length === 0 && (
+                        <div className="rounded-xl bg-white p-10 text-center text-slate-500 shadow-sm">
+                            No orders in this view.
+                        </div>
+                    )}
+
+                    {visibleOrders.map((order) => (
                         <div
                             key={order._id}
                             className="rounded-xl bg-white p-6 shadow-sm"
@@ -243,6 +263,26 @@ const Orders = () => {
                             </div>
 
                             <div className="mt-6 grid gap-6 lg:grid-cols-2">
+                                <div className="lg:col-span-2">
+                                    <h2 className="text-sm font-semibold text-slate-700">
+                                        Consulting Doctor
+                                    </h2>
+
+                                    <p className="mt-2 rounded-lg bg-slate-50 p-4 text-sm leading-6 text-slate-600">
+                                        {order.doctor
+                                            ? `${order.doctor.name} - ${order.doctorDepartment || order.doctor.department}`
+                                            : "Not mentioned"}
+                                        {order.doctor && (order.doctorRejected ? " · Doctor declined this order" : order.doctorConfirmed ? " · Doctor has confirmed this order" : " · Waiting for doctor confirmation")}
+                                    </p>
+
+                                    {(order.doctorConfirmed || order.doctorRejected) && order.doctorNote && (
+                                        <p className="mt-3 rounded-lg bg-amber-50 p-4 text-sm leading-6 text-amber-800">
+                                            <span className="font-semibold">{order.doctorRejected ? "Reason for declining: " : "Doctor's suggestion: "}</span>
+                                            {order.doctorNote}
+                                        </p>
+                                    )}
+                                </div>
+
                                 <div>
                                     <h2 className="text-sm font-semibold text-slate-700">
                                         Delivery Address
@@ -339,7 +379,9 @@ const Orders = () => {
                                             <button
                                                 type="button"
                                                 onClick={() => updateStatus(order._id, "confirmed")}
-                                                className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+                                                disabled={Boolean(order.doctor) && !order.doctorConfirmed}
+                                                title={order.doctor && !order.doctorConfirmed ? "Waiting for the consulting doctor to confirm" : ""}
+                                                className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:hover:bg-slate-300"
                                             >
                                                 Confirm
                                             </button>

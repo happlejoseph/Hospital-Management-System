@@ -2,7 +2,12 @@
 
 import User from "../models/User.js";
 import Doctor from "../models/Doctor.js";
+import Appointment from "../models/Appointment.js";
+import MedicalRecord from "../models/MedicalRecord.js";
+import MedicineOrder from "../models/MedicineOrder.js";
 import bcrypt from "bcryptjs";
+import mongoose from "mongoose";
+import { weekDays, getUpcomingAvailability } from "../utils/availability.js";
 
 
 
@@ -113,7 +118,7 @@ export const getPublicDoctors = async(req, res)=> {
             filter.department = req.query.department
         }
 
-        const doctors = await Doctor.find(filter).select("name email phone specialization qualification experience department image status").sort({ name: 1 });
+        const doctors = await Doctor.find(filter).select("name email phone specialization qualification experience department image status schedule").sort({ name: 1 });
         res.status(200).json({doctors});
     }
 
@@ -131,7 +136,7 @@ export const getPublicDoctorById = async(req, res) => {
 
     try {
 
-        const doctor = await Doctor.findOne({ _id: req.params.id, status: "active" }).select("name email phone specialization qualification experience department image status");
+        const doctor = await Doctor.findOne({ _id: req.params.id, status: "active" }).select("name email phone specialization qualification experience department image status schedule");
 
         if(!doctor) {
             return res.status(404).json({
@@ -250,12 +255,311 @@ export const deleteDoctor = async(req, res) => {
             });
         }
 
+        const [activeAppointment, pendingOrder] = await Promise.all([
+            Appointment.exists({
+                doctor: doctor._id,
+                status: { $in: ["pending", "confirmed"] }
+            }),
+            MedicineOrder.exists({
+                doctor: doctor._id,
+                status: "pending"
+            })
+        ]);
+
+        if(activeAppointment || pendingOrder) {
+            return res.status(400).json({
+                message: "This doctor still has active appointments or pending medicine orders. Set the doctor to inactive instead of deleting"
+            });
+        }
+
         await User.findByIdAndDelete(doctor.user);
 
         await Doctor.findByIdAndDelete(doctor._id);
 
         res.status(200).json({
             message: "Doctor deleted successfully"
+        });
+    }
+
+    catch(error) {
+        res.status(500).json({
+            message: error.message
+        });
+    }
+};
+
+
+
+
+export const getPublicDoctorAvailability = async(req, res) => {
+
+    try {
+
+        if(!mongoose.isValidObjectId(req.params.id)) {
+            return res.status(404).json({
+                message: "Doctor not found"
+            });
+        }
+
+        const doctor = await Doctor.findOne({ _id: req.params.id, status: "active" });
+
+        if(!doctor) {
+            return res.status(404).json({
+                message: "Doctor not found"
+            });
+        }
+
+        const availability = await getUpcomingAvailability(doctor);
+
+        res.status(200).json({
+            availability
+        });
+    }
+
+    catch(error) {
+        res.status(500).json({
+            message: error.message
+        });
+    }
+};
+
+
+
+
+export const getMySchedule = async(req, res) => {
+
+    try {
+
+        const doctor = await Doctor.findOne({ user: req.user.id });
+
+        if(!doctor) {
+            return res.status(404).json({
+                message: "Doctor profile not found"
+            });
+        }
+
+        const upcoming = await getUpcomingAvailability(doctor);
+
+        res.status(200).json({
+            schedule: doctor.schedule,
+            upcoming
+        });
+    }
+
+    catch(error) {
+        res.status(500).json({
+            message: error.message
+        });
+    }
+};
+
+
+
+
+export const updateMySchedule = async(req, res) => {
+
+    try {
+
+        const { schedule } = req.body;
+
+        if(!Array.isArray(schedule)) {
+            return res.status(400).json({
+                message: "Schedule is required"
+            });
+        }
+
+        const doctor = await Doctor.findOne({ user: req.user.id });
+
+        if(!doctor) {
+            return res.status(404).json({
+                message: "Doctor profile not found"
+            });
+        }
+
+        const timePattern = /^([01]\d|2[0-3]):[0-5]\d$/;
+        const selectedDays = new Set();
+        const cleanedSchedule = [];
+
+        for(const item of schedule) {
+
+            const day = String(item.day || "").toLowerCase();
+
+            if(!weekDays.includes(day)) {
+                return res.status(400).json({
+                    message: "Invalid day in schedule"
+                });
+            }
+
+            if(selectedDays.has(day)) {
+                return res.status(400).json({
+                    message: "Each day can only be added once"
+                });
+            }
+
+            if(!timePattern.test(item.startTime) || !timePattern.test(item.endTime)) {
+                return res.status(400).json({
+                    message: `Enter a valid start and end time for ${day}`
+                });
+            }
+
+            if(item.endTime <= item.startTime) {
+                return res.status(400).json({
+                    message: `End time must be after start time for ${day}`
+                });
+            }
+
+            const limit = Number(item.limit);
+
+            if(!Number.isInteger(limit) || limit < 1 || limit > 500) {
+                return res.status(400).json({
+                    message: `Appointment limit for ${day} must be a whole number between 1 and 500`
+                });
+            }
+
+            selectedDays.add(day);
+
+            cleanedSchedule.push({
+                day,
+                startTime: item.startTime,
+                endTime: item.endTime,
+                limit
+            });
+        }
+
+        cleanedSchedule.sort((first, second) => weekDays.indexOf(first.day) - weekDays.indexOf(second.day));
+
+        doctor.schedule = cleanedSchedule;
+        await doctor.save();
+
+        const upcoming = await getUpcomingAvailability(doctor);
+
+        res.status(200).json({
+            message: "Schedule saved successfully",
+            schedule: doctor.schedule,
+            upcoming
+        });
+    }
+
+    catch(error) {
+        res.status(500).json({
+            message: error.message
+        });
+    }
+};
+
+
+
+
+export const getMyPatients = async(req, res) => {
+
+    try {
+
+        const doctor = await Doctor.findOne({ user: req.user.id });
+
+        if(!doctor) {
+            return res.status(404).json({
+                message: "Doctor profile not found"
+            });
+        }
+
+        const consultations = await Appointment.aggregate([
+            {
+                $match: {
+                    doctor: doctor._id,
+                    status: "completed"
+                }
+            },
+            {
+                $group: {
+                    _id: "$patient",
+                    visits: { $sum: 1 },
+                    lastVisit: { $max: "$date" }
+                }
+            }
+        ]);
+
+        const patients = await User.find({
+            _id: { $in: consultations.map((item) => item._id) }
+        }).select("name email");
+
+        const result = consultations
+            .map((item) => {
+
+                const patient = patients.find((user) => String(user._id) === String(item._id));
+
+                return {
+                    _id: item._id,
+                    name: patient?.name || "Unknown patient",
+                    email: patient?.email || "",
+                    visits: item.visits,
+                    lastVisit: item.lastVisit
+                };
+            })
+            .sort((first, second) => second.lastVisit.localeCompare(first.lastVisit));
+
+        res.status(200).json({
+            patients: result
+        });
+    }
+
+    catch(error) {
+        res.status(500).json({
+            message: error.message
+        });
+    }
+};
+
+
+
+
+export const getMyPatientHistory = async(req, res) => {
+
+    try {
+
+        const { patientId } = req.params;
+
+        if(!mongoose.isValidObjectId(patientId)) {
+            return res.status(404).json({
+                message: "Patient not found"
+            });
+        }
+
+        const doctor = await Doctor.findOne({ user: req.user.id });
+
+        if(!doctor) {
+            return res.status(404).json({
+                message: "Doctor profile not found"
+            });
+        }
+
+        const consulted = await Appointment.exists({
+            doctor: doctor._id,
+            patient: patientId,
+            status: "completed"
+        });
+
+        if(!consulted) {
+            return res.status(404).json({
+                message: "This patient has not completed a consultation with you"
+            });
+        }
+
+        const [patient, appointments, medicalRecords, medicineOrders] = await Promise.all([
+            User.findById(patientId).select("name email"),
+            Appointment.find({ doctor: doctor._id, patient: patientId }).sort({ date: -1, time: -1 }),
+            MedicalRecord.find({ doctor: doctor._id, patient: patientId })
+                .populate("appointment", "date time status")
+                .sort({ createdAt: -1 }),
+            MedicineOrder.find({ doctor: doctor._id, patient: patientId })
+                .populate("medicines.medicine", "name")
+                .sort({ createdAt: -1 })
+        ]);
+
+        res.status(200).json({
+            patient,
+            appointments,
+            medicalRecords,
+            medicineOrders
         });
     }
 

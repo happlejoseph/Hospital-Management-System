@@ -22,6 +22,9 @@ const DoctorLayout = ({ children }) => {
                 <nav className="sidebar-nav">
                     <NavLink className="sidebar-link" to="/doctor" end>Dashboard</NavLink>
                     <NavLink className="sidebar-link" to="/doctor/appointments">Appointments</NavLink>
+                    <NavLink className="sidebar-link" to="/doctor/schedule">Schedule</NavLink>
+                    <NavLink className="sidebar-link" to="/doctor/patients">Patients</NavLink>
+                    <NavLink className="sidebar-link" to="/doctor/medicine-orders">Medicine Orders</NavLink>
                     <NavLink className="sidebar-link" to="/doctor/medical-records">Medical Records</NavLink>
                 </nav>
                 <div className="sidebar-bottom">

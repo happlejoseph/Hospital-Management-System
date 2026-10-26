@@ -84,13 +84,14 @@ const Dashboard = () => {
                     <div className="table-card">
                         <div className="table-scroll">
                             <table>
-                                <thead><tr><th>Patient</th><th>Total</th><th>Date</th></tr></thead>
+                                <thead><tr><th>Patient</th><th>Total</th><th>Doctor</th><th>Date</th></tr></thead>
                                 <tbody>
-                                    {!loading && pendingOrders.length === 0 && <tr><td colSpan="3">No pending orders.</td></tr>}
+                                    {!loading && pendingOrders.length === 0 && <tr><td colSpan="4">No pending orders.</td></tr>}
                                     {pendingOrders.slice(0, 5).map((order) => (
                                         <tr key={order._id}>
                                             <td>{order.patient?.name}</td>
                                             <td>₹{order.totalAmount.toFixed(2)}</td>
+                                            <td>{order.doctor ? (order.doctorConfirmed ? "Confirmed" : "Waiting") : "—"}</td>
                                             <td>{new Date(order.createdAt).toLocaleDateString()}</td>
                                         </tr>
                                     ))}
